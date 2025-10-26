@@ -10,17 +10,29 @@ This marketplace provides curated plugins that extend Claude Code with team-spec
 
 #### workflows
 
-Expert skill for using the workflows-mcp MCP server to execute DAG-based workflows.
+Complete workflow orchestration solution with specialist agent, expert skill, and MCP auto-configuration.
 
 **Includes:**
-- 📚 Comprehensive skill documentation for workflows-mcp usage
+
+- 🤖 **Workflows-specialist agent** - Dedicated agent for DAG-based workflow orchestration
+- 📚 **Workflows-expert skill** - Comprehensive knowledge base for workflows-mcp
+- ⚙️ **MCP auto-configuration** - Automatic workflows-mcp server setup
 - 🔧 Variable resolution syntax reference
 - 📖 Block executors complete reference
 - ✅ Best practices and common patterns
 
-**Keywords**: workflows, mcp, dag, automation, orchestration
+**Features:**
 
-**Version**: 1.0.0
+- Tag-based workflow discovery and execution
+- Multi-step task coordination with dependency management
+- 4-namespace variable architecture (inputs, blocks, metadata, shortcuts)
+- Conditional execution with boolean shortcuts
+- Workflow composition and checkpoint management
+- Custom workflow directories: `~/.workflows` and `./.workflows`
+
+**Keywords**: workflows, mcp, dag, automation, orchestration, specialist, agent
+
+**Version**: 2.0.0
 
 ## Installation
 

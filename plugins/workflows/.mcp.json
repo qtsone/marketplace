@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "workflows": {
+      "command": "uvx",
+      "args": [
+        "workflows-mcp"
+      ],
+      "env": {
+        "WORKFLOWS_TEMPLATE_PATHS": "~/.workflows:./.workflows"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}

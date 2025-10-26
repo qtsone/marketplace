@@ -1,7 +1,7 @@
 {
   "name": "workflows",
-  "version": "1.0.0",
-  "description": "Expert skill for using workflows-mcp MCP server to execute DAG-based workflows with proper syntax and best practices",
+  "version": "2.0.0",
+  "description": "Complete workflow orchestration solution with specialist agent, expert skill, and MCP auto-configuration for DAG-based workflows",
   "author": {
     "name": "QTS Team",
     "email": "[email protected]",
@@ -10,5 +10,5 @@
   "homepage": "https://github.com/qtsone/marketplace",
   "repository": "https://github.com/qtsone/marketplace",
   "license": "MIT",
-  "keywords": ["workflows", "mcp", "dag", "automation", "orchestration"]
+  "keywords": ["workflows", "mcp", "dag", "automation", "orchestration", "specialist", "agent"]
 }
