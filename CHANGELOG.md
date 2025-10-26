@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.1.0](https://github.com/qtsone/marketplace/compare/v1.0.0...v1.1.0) (2025-10-26)
+
+
+### Features
+
+* enhance workflows plugin with specialist agent and MCP auto-config ([1262294](https://github.com/qtsone/marketplace/commit/12622942469f774e7679be6a4da859e3375470f9))
+
 # 1.0.0 (2025-10-26)
 
 
