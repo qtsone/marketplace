@@ -1,0 +1,14 @@
+{
+  "name": "workflows-expert",
+  "version": "1.0.0",
+  "description": "Expert skill for using workflows-mcp MCP server to execute DAG-based workflows with proper syntax and best practices",
+  "author": {
+    "name": "QTS Team",
+    "email": "[email protected]",
+    "url": "https://github.com/qtsone"
+  },
+  "homepage": "https://github.com/qtsone/marketplace",
+  "repository": "https://github.com/qtsone/marketplace",
+  "license": "MIT",
+  "keywords": ["workflows", "mcp", "dag", "automation", "orchestration"]
+}

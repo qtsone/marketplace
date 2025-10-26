@@ -1,0 +1,21 @@
+{
+  "name": "qts-tools",
+  "owner": {
+    "name": "QTS Team",
+    "email": "[email protected]"
+  },
+  "plugins": [
+    {
+      "name": "workflows-expert",
+      "source": "./plugins/workflows-expert",
+      "description": "Expert skill for using workflows-mcp MCP server to execute DAG-based workflows",
+      "version": "1.0.0",
+      "author": {
+        "name": "QTS Team",
+        "email": "[email protected]"
+      },
+      "keywords": ["workflows", "mcp", "dag", "automation"],
+      "license": "MIT"
+    }
+  ]
+}
