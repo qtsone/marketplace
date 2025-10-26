@@ -1,0 +1,37 @@
+name: simple-ci-pipeline
+description: Basic CI pipeline - test, lint, and build
+
+inputs:
+  project_path:
+    type: string
+    required: true
+    description: Path to the project directory
+
+blocks:
+  # Run tests
+  - id: run_tests
+    type: Shell
+    inputs:
+      command: "pytest tests/ -v"
+      working_dir: "${inputs.project_path}"
+
+  # Run linting
+  - id: run_lint
+    type: Shell
+    inputs:
+      command: "ruff check ."
+      working_dir: "${inputs.project_path}"
+
+  # Build only if tests and lint pass
+  - id: build
+    type: Shell
+    inputs:
+      command: "python -m build"
+      working_dir: "${inputs.project_path}"
+    depends_on: [run_tests, run_lint]
+    condition: "${blocks.run_tests.succeeded} and ${blocks.run_lint.succeeded}"
+
+outputs:
+  tests_passed: "${blocks.run_tests.succeeded}"
+  lint_passed: "${blocks.run_lint.succeeded}"
+  build_succeeded: "${blocks.build.succeeded}"

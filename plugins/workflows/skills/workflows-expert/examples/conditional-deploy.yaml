@@ -1,0 +1,64 @@
+name: conditional-deploy
+description: Deploy to different environments based on conditions
+
+inputs:
+  environment:
+    type: string
+    required: true
+    description: "staging or production"
+  skip_tests:
+    type: boolean
+    default: false
+    description: Skip tests (for emergency deployments)
+
+blocks:
+  # Testing (can be skipped)
+  - id: run_tests
+    type: Shell
+    inputs:
+      command: "pytest tests/"
+    condition: "${inputs.skip_tests} == false"
+
+  # Build application
+  - id: build
+    type: Shell
+    inputs:
+      command: "npm run build"
+    depends_on: [run_tests]
+    condition: >
+      ${inputs.skip_tests} == true or
+      ${blocks.run_tests.succeeded}
+
+  # Deploy to staging
+  - id: deploy_staging
+    type: Shell
+    inputs:
+      command: "./deploy.sh staging"
+    depends_on: [build]
+    condition: >
+      ${blocks.build.succeeded} and
+      ${inputs.environment} == 'staging'
+
+  # Deploy to production
+  - id: deploy_production
+    type: Shell
+    inputs:
+      command: "./deploy.sh production"
+    depends_on: [build]
+    condition: >
+      ${blocks.build.succeeded} and
+      ${inputs.environment} == 'production'
+
+  # Verify deployment
+  - id: verify
+    type: Shell
+    inputs:
+      command: "curl -f https://${inputs.environment}.example.com/health"
+    depends_on: [deploy_staging, deploy_production]
+    condition: >
+      ${blocks.deploy_staging.succeeded} or
+      ${blocks.deploy_production.succeeded}
+
+outputs:
+  deployed: "${blocks.verify.succeeded}"
+  environment: "${inputs.environment}"

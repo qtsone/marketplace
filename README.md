@@ -8,7 +8,7 @@ This marketplace provides curated plugins that extend Claude Code with team-spec
 
 ### Available Plugins
 
-#### workflows-expert
+#### workflows
 
 Expert skill for using the workflows-mcp MCP server to execute DAG-based workflows.
 
@@ -35,7 +35,7 @@ Add this marketplace to your Claude Code:
 Then install plugins:
 
 ```bash
-/plugin install workflows-expert@qts-tools
+/plugin install workflows@qtsone
 ```
 
 ### For Claude Desktop Configuration
@@ -45,7 +45,7 @@ Add to your `.claude/settings.json`:
 ```json
 {
   "extraKnownMarketplaces": {
-    "qts-tools": {
+    "qtsone": {
       "source": {
         "source": "github",
         "repo": "qtsone/marketplace"
@@ -59,7 +59,9 @@ Team members will automatically have access to the marketplace.
 
 ## Available Skills
 
-### workflows-expert
+This marketplace includes the following skills bundled in plugins:
+
+### workflows-expert (from `workflows` plugin)
 
 Teaches Claude how to properly use the workflows-mcp MCP server for workflow orchestration.
 

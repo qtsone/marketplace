@@ -292,11 +292,12 @@ response: string        # User's response
 ```
 
 **Resume with**:
-```javascript
-await use_mcp_tool('workflows', 'resume_workflow', {
+```text
+Tool: resume_workflow
+Parameters: {
   checkpoint_id: '<checkpoint_id>',
   response: 'yes'
-})
+}
 ```
 
 ---

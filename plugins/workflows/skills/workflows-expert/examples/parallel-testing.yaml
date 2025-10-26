@@ -1,0 +1,83 @@
+name: parallel-testing
+description: Run multiple test suites in parallel
+
+inputs:
+  project_path:
+    type: string
+    required: true
+
+blocks:
+  # All these tests run in parallel (no dependencies)
+  - id: unit_tests
+    type: Shell
+    inputs:
+      command: "pytest tests/unit/ -v"
+      working_dir: "${inputs.project_path}"
+
+  - id: integration_tests
+    type: Shell
+    inputs:
+      command: "pytest tests/integration/ -v"
+      working_dir: "${inputs.project_path}"
+
+  - id: e2e_tests
+    type: Shell
+    inputs:
+      command: "pytest tests/e2e/ -v"
+      working_dir: "${inputs.project_path}"
+
+  - id: lint_check
+    type: Shell
+    inputs:
+      command: "ruff check ."
+      working_dir: "${inputs.project_path}"
+
+  - id: type_check
+    type: Shell
+    inputs:
+      command: "mypy src/"
+      working_dir: "${inputs.project_path}"
+
+  # Generate report after all tests complete
+  - id: generate_report
+    type: RenderTemplate
+    inputs:
+      template: |
+        # Test Results
+
+        - Unit Tests: {{ unit }}
+        - Integration Tests: {{ integration }}
+        - E2E Tests: {{ e2e }}
+        - Linting: {{ lint }}
+        - Type Checking: {{ types }}
+
+        Overall: {{ overall }}
+      variables:
+        unit: "${blocks.unit_tests.succeeded}"
+        integration: "${blocks.integration_tests.succeeded}"
+        e2e: "${blocks.e2e_tests.succeeded}"
+        lint: "${blocks.lint_check.succeeded}"
+        types: "${blocks.type_check.succeeded}"
+        overall: >
+          ${blocks.unit_tests.succeeded} and
+          ${blocks.integration_tests.succeeded} and
+          ${blocks.e2e_tests.succeeded} and
+          ${blocks.lint_check.succeeded} and
+          ${blocks.type_check.succeeded}
+    depends_on: [unit_tests, integration_tests, e2e_tests, lint_check, type_check]
+
+  - id: save_report
+    type: CreateFile
+    inputs:
+      path: "${inputs.project_path}/test-results.md"
+      content: "${blocks.generate_report.rendered}"
+    depends_on: [generate_report]
+
+outputs:
+  all_passed: >
+    ${blocks.unit_tests.succeeded} and
+    ${blocks.integration_tests.succeeded} and
+    ${blocks.e2e_tests.succeeded} and
+    ${blocks.lint_check.succeeded} and
+    ${blocks.type_check.succeeded}
+  report_path: "${blocks.save_report.path}"
