@@ -18,10 +18,18 @@
       }
     ],
     [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "node scripts/update-versions.js ${nextRelease.version}"
+      }
+    ],
+    [
       "@semantic-release/git",
       {
         "assets": [
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          ".claude-plugin/marketplace.json",
+          "plugins/*/.claude-plugin/plugin.json"
         ],
         "message": "chore(release): version ${nextRelease.version}\n\n${nextRelease.notes}"
       }
