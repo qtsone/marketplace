@@ -81,14 +81,66 @@ function updateVersion(filePath) {
   }
 }
 
-// Update marketplace.json
+/**
+ * Update marketplace.json with unified versioning
+ * Updates both top-level version and all plugin versions
+ */
+function updateMarketplaceFile(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, "utf8");
+    const json = JSON.parse(content);
+    let updated = false;
+
+    // Update top-level version
+    if (json.version !== newVersion) {
+      console.log(
+        `✓ ${path.relative(process.cwd(), filePath)} (marketplace): ${json.version} → ${newVersion}`,
+      );
+      json.version = newVersion;
+      updated = true;
+    } else {
+      console.log(
+        `  ${path.relative(process.cwd(), filePath)} (marketplace): already ${newVersion}`,
+      );
+    }
+
+    // Update all plugin versions in plugins array
+    if (json.plugins && Array.isArray(json.plugins)) {
+      json.plugins.forEach((plugin) => {
+        if (plugin.version !== newVersion) {
+          console.log(
+            `✓ ${path.relative(process.cwd(), filePath)} (plugin: ${plugin.name}): ${plugin.version || "none"} → ${newVersion}`,
+          );
+          plugin.version = newVersion;
+          updated = true;
+        } else {
+          console.log(
+            `  ${path.relative(process.cwd(), filePath)} (plugin: ${plugin.name}): already ${newVersion}`,
+          );
+        }
+      });
+    }
+
+    if (updated) {
+      fs.writeFileSync(filePath, JSON.stringify(json, null, 2) + "\n", "utf8");
+      filesUpdated++;
+    }
+  } catch (error) {
+    console.error(
+      `✗ ${path.relative(process.cwd(), filePath)}: ${error.message}`,
+    );
+    errors++;
+  }
+}
+
+// Update marketplace.json (both top-level version and plugin versions)
 const marketplaceFile = path.join(
   process.cwd(),
   ".claude-plugin",
   "marketplace.json",
 );
 if (fs.existsSync(marketplaceFile)) {
-  updateVersion(marketplaceFile);
+  updateMarketplaceFile(marketplaceFile);
 }
 
 // Find and update all plugin.json files in plugins/
