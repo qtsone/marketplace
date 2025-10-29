@@ -18,7 +18,3 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           ssh-key: ${{ secrets.DEPLOY_KEY }}
-          extra-plugins: |
-            @semantic-release/changelog
-            @semantic-release/git
-            @semantic-release/exec
