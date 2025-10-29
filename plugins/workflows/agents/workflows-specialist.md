@@ -172,10 +172,10 @@ From workflows-mcp server:
 ## Best Practices
 
 ### Variable Syntax
-- ✅ Always use explicit namespaces: `${inputs.field}`, `${blocks.id.outputs.field}`
-- ✅ Prefer boolean shortcuts: `${blocks.test.succeeded}` over `${blocks.test.outputs.exit_code} == 0`
+- ✅ Always use explicit namespaces: `{{inputs.field}}`, `{{blocks.id.outputs.field}}`
+- ✅ Prefer boolean shortcuts: `{{blocks.test.succeeded}}` over `{{blocks.test.outputs.exit_code}} == 0`
 - ✅ Use ADR-007 status fields: `.succeeded`, `.failed`, `.skipped`
-- ❌ Never use bare variables: `${field}` or `${block_id}`
+- ❌ Never use bare variables: `{{field}}` or `{{block_id}}`
 
 ### Workflow Discovery
 - ✅ Start with tag-based discovery: `list_workflows(tags=[...])`

@@ -1,0 +1,175 @@
+name: prd-finalize
+description: Generate PRD document from template, commit changes, and create GitHub PR
+tags: [prd, finalize, template, git, github, commit, pr]
+
+inputs:
+  worktree_path:
+    type: str
+    required: true
+    description: Absolute path to the worktree directory
+  project_name:
+    type: str
+    required: true
+    description: Project name for commit messages and PR title
+  prd_data:
+    type: dict
+    required: true
+    description: |
+      JSON object containing all PRD sections from conversation:
+      {
+        "PROJECT_NAME": "...",
+        "PROJECT_DESCRIPTION": "...",
+        "SYSTEM_ARCHITECTURE": "...",
+        "TECHNOLOGY_STACK": "...",
+        "SECURITY_REQUIREMENTS": "...",
+        "PERFORMANCE_REQUIREMENTS": "...",
+        "QUALITY_ATTRIBUTES": "...",
+        "ARCHITECTURAL_DECISIONS": "...",
+        "SERVICE_LOGIC": "...",
+        "DEVELOPMENT_ROADMAP": "...",
+        "KEY_ARCHITECTURAL_DECISIONS": "...",
+        "FEATURE_BREAKDOWN": "..."
+      }
+
+outputs:
+  prd_path: "{{blocks.populate_template.outputs.stdout}}"
+  commit_sha: "{{blocks.commit_prd.outputs.stdout}}"
+  pr_url: "{{blocks.create_pr.outputs.stdout}}"
+
+blocks:
+  - id: prepare_data
+    type: Shell
+    inputs:
+      command: |
+        # Create temporary data file for template population
+        echo '{{inputs.prd_data}}' > /tmp/prd-data-$$.json
+
+        # Add metadata
+        jq '. + {"DATE": "'$(date +%Y-%m-%d)'", "AUTHOR": "'$(git config user.name)'"}' \
+          /tmp/prd-data-$$.json > /tmp/prd-data-final-$$.json
+
+        echo "/tmp/prd-data-final-$$.json"
+
+  - id: populate_template
+    type: Shell
+    inputs:
+      command: |
+        cd "{{inputs.worktree_path}}"
+
+        # Use template from .project/templates/ if exists, else use default
+        if [ -f ".project/templates/base.md" ]; then
+          TEMPLATE_FILE=".project/templates/base.md"
+        else
+          TEMPLATE_FILE="~/.claude/assets/templates/base-prd.md"
+        fi
+
+        # Populate template
+        ~/.claude/scripts/helpers/utils/populate-template.sh "$TEMPLATE_FILE" \
+          --data "{{blocks.prepare_data.outputs.stdout}}" \
+          --output PROJECT.md
+
+        # Verify no undefined variables
+        if grep -q '{{' PROJECT.md; then
+          echo "Warning: Some template variables were not replaced:" >&2
+          grep -o '{{[^}]*}}' PROJECT.md | sort -u >&2
+        fi
+
+        echo "{{inputs.worktree_path}}/PROJECT.md"
+    depends_on: [prepare_data]
+    condition: "{{blocks.prepare_data.succeeded}}"
+
+  - id: stage_files
+    type: Shell
+    inputs:
+      command: |
+        cd "{{inputs.worktree_path}}"
+        git add PROJECT.md .project/ 2>/dev/null || git add PROJECT.md
+        git status --short
+    depends_on: [populate_template]
+    condition: "{{blocks.populate_template.succeeded}}"
+
+  - id: commit_prd
+    type: Shell
+    inputs:
+      command: |
+        cd "{{inputs.worktree_path}}"
+
+        # Create semantic commit
+        ~/.claude/scripts/helpers/git/create-semantic-commit.sh \
+          docs prd "Add comprehensive PRD for {{inputs.project_name}}" \
+          --body "Generated through guided architectural conversation with specialist team.
+
+        Includes:
+        - Complete system architecture design
+        - Technology stack recommendations
+        - Security and performance requirements
+        - Quality attributes and validation criteria
+        - Specialist validation (architecture, security, performance, QA)
+
+        RULES.md compliance verified (YAGNI/KISS/DRY)."
+
+        # Return commit SHA
+        git rev-parse HEAD
+    depends_on: [stage_files]
+    condition: "{{blocks.stage_files.succeeded}}"
+
+  - id: push_branch
+    type: Shell
+    inputs:
+      command: |
+        cd "{{inputs.worktree_path}}"
+        BRANCH_NAME=$(git branch --show-current)
+        git push -u origin "$BRANCH_NAME" 2>&1
+        echo "Pushed branch: $BRANCH_NAME"
+    depends_on: [commit_prd]
+    condition: "{{blocks.commit_prd.succeeded}}"
+
+  - id: create_pr
+    type: Shell
+    inputs:
+      command: |
+        cd "{{inputs.worktree_path}}"
+
+        # Create PR body
+        PR_BODY="## Summary
+        - Comprehensive PRD for {{inputs.project_name}} architecture
+        - Validated by specialist team
+
+        ## Specialist Contributions
+        - **Architecture Design**: @senior-architect
+        - **Documentation**: @technical-writer
+        - **Security Review**: @security-specialist
+        - **Performance Analysis**: @performance-optimizer
+        - **Quality Validation**: @senior-qa-engineer
+
+        ## Quality Gates Passed
+        - [x] RULES.md compliance (YAGNI/KISS/DRY)
+        - [x] All template sections completed
+        - [x] Architectural consistency validated
+        - [x] Security requirements documented
+        - [x] Performance requirements defined
+
+        ## Test Plan
+        - [ ] PRD review and architectural approval
+        - [ ] Feature issue validation and prioritization
+        - [ ] Technology stack alignment verification
+
+        🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+
+        # Create PR using gh CLI
+        gh pr create \
+          --title "docs: add comprehensive PRD for {{inputs.project_name}}" \
+          --body "$PR_BODY" \
+          --label "documentation" \
+          --label "prd" \
+          --base "main"
+    depends_on: [push_branch]
+    condition: "{{blocks.push_branch.succeeded}}"
+
+  - id: cleanup_temp
+    type: Shell
+    inputs:
+      command: |
+        rm -f /tmp/prd-data-*.json
+        echo "Cleanup complete"
+    depends_on: [create_pr]

@@ -1,0 +1,667 @@
+name: prd-interactive-generation
+description: |
+  Comprehensive recursive/iterative PRD generation workflow that guides users through
+  6 architectural phases using Prompt blocks. Self-contained workflow that accumulates
+  responses, generates PRD document in worktree, and handles git/GitHub operations.
+  Designed to guide both user and LLM through structured PRD creation.
+tags: [prd, interactive, architecture, conversational, recursive]
+
+inputs:
+  project_name:
+    type: str
+    required: true
+    description: Initial project name or topic
+  output_filename:
+    type: str
+    required: false
+    description: Output filename (default PROJECT.md, can use ARCHITECTURE.md)
+    default: "PROJECT.md"
+
+outputs:
+  prd_path: "{{blocks.finalize.outputs.prd_path}}"
+  commit_sha: "{{blocks.finalize.outputs.commit_sha}}"
+  pr_url: "{{blocks.finalize.outputs.pr_url}}"
+  worktree_path: "{{blocks.setup.outputs.worktree_path}}"
+  branch_name: "{{blocks.setup.outputs.branch_name}}"
+  issue_count: "{{blocks.extract_features.outputs.issue_count}}"
+
+blocks:
+  # ============================================================================
+  # PHASE 0: Setup & Repository Preparation
+  # ============================================================================
+
+  - id: setup
+    type: Workflow
+    inputs:
+      workflow: "prd-setup"
+      inputs:
+        project_name: "{{inputs.project_name}}"
+
+  - id: introduction
+    type: Prompt
+    inputs:
+      message: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        PRD Interactive Generation Workflow
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Setup Complete:
+        - Worktree: {{blocks.setup.outputs.worktree_path}}
+        - Branch: {{blocks.setup.outputs.branch_name}}
+        - Output: {{inputs.output_filename}}
+
+        This workflow will guide you through 6 architectural phases to build
+        a comprehensive PRD. At each phase:
+
+        1. You'll be prompted with structured questions
+        2. Provide detailed responses based on your requirements
+        3. You can refine your responses before moving forward
+        4. All responses are accumulated into the final PRD
+
+        The 6 phases are:
+        - Phase 1: System Discovery & Problem Context
+        - Phase 2: Constraint Analysis & System Boundaries
+        - Phase 3: Service Architecture & Component Design
+        - Phase 4: Technology Stack & Infrastructure
+        - Phase 5: Quality Attributes & Risk Assessment
+        - Phase 6: Validation & Documentation
+
+        Ready to begin? Type 'yes' to start Phase 1, or provide initial context.
+      default: "yes"
+    depends_on: [setup]
+    condition: "{{blocks.setup.succeeded}}"
+
+  # ============================================================================
+  # PHASE 1: System Discovery & Problem Context
+  # ============================================================================
+
+  - id: phase1_questions
+    type: Prompt
+    inputs:
+      message: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        PHASE 1: System Discovery & Problem Context
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Please provide detailed answers to these questions:
+
+        1. **System Name**: What is your system called?
+
+        2. **Core Problem**: What fundamental problem does it solve?
+
+        3. **Business Objective**: What is the main strategic business goal?
+
+        4. **User Personas**: Who are the primary users? What are their key use cases?
+
+        5. **Scale Requirements**: What performance and scale do you anticipate?
+           (e.g., users, requests/sec, data volume, geographic distribution)
+
+        **Instructions for Claude/LLM**:
+        - Research similar systems using available context
+        - Identify industry patterns and best practices
+        - Consider performance implications
+        - Validate feasibility of scale requirements
+
+        Provide comprehensive responses for all 5 questions.
+      default: ""
+    depends_on: [introduction]
+    condition: "{{blocks.introduction.response}} != 'skip' and {{blocks.introduction.response}} != ''"
+
+  - id: phase1_confirmation
+    type: Prompt
+    inputs:
+      message: |
+        Phase 1 captured. Your responses:
+        {{blocks.phase1_questions.response}}
+
+        Options:
+        - Type 'proceed' to continue to Phase 2
+        - Type 'refine' followed by updated information to revise
+        - Type 'expand' followed by additional details to add more
+      default: "proceed"
+    depends_on: [phase1_questions]
+    condition: "{{blocks.phase1_questions.response}} != ''"
+
+  # ============================================================================
+  # PHASE 2: Constraint Analysis & System Boundaries
+  # ============================================================================
+
+  - id: phase2_questions
+    type: Prompt
+    inputs:
+      message: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        PHASE 2: Constraint Analysis & System Boundaries
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Define your system's constraints and boundaries:
+
+        1. **Technical Constraints**: What are non-negotiable requirements?
+           (performance SLAs, security standards, compliance requirements)
+
+        2. **System Boundaries**: What is IN scope vs OUT of scope?
+           (be explicit about what this system will and won't do)
+
+        3. **External Integrations**: Which external systems/services must you integrate?
+           (APIs, databases, third-party services, legacy systems)
+
+        4. **Business Rules**: What key business rules shape the architecture?
+           (regulatory requirements, business logic constraints)
+
+        5. **Known Trade-offs**: What constraints conflict?
+           (cost vs performance, complexity vs time-to-market, etc.)
+
+        **Instructions for Claude/LLM**:
+        - Validate security and compliance requirements
+        - Assess performance constraint feasibility
+        - Identify integration patterns
+        - Analyze trade-off implications
+        - Apply YAGNI principle - avoid over-engineering
+
+        Provide specific, measurable constraints where possible.
+      default: ""
+    depends_on: [phase1_confirmation]
+    condition: "{{blocks.phase1_confirmation.response}} contains 'proceed'"
+
+  - id: phase2_confirmation
+    type: Prompt
+    inputs:
+      message: |
+        Phase 2 captured. Your responses:
+        {{blocks.phase2_questions.response}}
+
+        Options:
+        - Type 'proceed' to continue to Phase 3
+        - Type 'refine' followed by updates
+        - Type 'expand' followed by additional details
+      default: "proceed"
+    depends_on: [phase2_questions]
+    condition: "{{blocks.phase2_questions.response}} != ''"
+
+  # ============================================================================
+  # PHASE 3: Service Architecture & Component Design
+  # ============================================================================
+
+  - id: phase3_questions
+    type: Prompt
+    inputs:
+      message: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        PHASE 3: Service Architecture & Component Design
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Design your system's architecture:
+
+        1. **Core Services/Components**: What are the main building blocks?
+           (list each service/component with its responsibility)
+
+        2. **Service Communication**: How do components interact?
+           (REST APIs, message queues, events, gRPC, direct calls)
+
+        3. **Data Flows**: What data moves between services?
+           (describe key data flows and their structure)
+
+        4. **API Contracts**: What are the key API endpoints and interfaces?
+           (high-level API design and service boundaries)
+
+        5. **Component Responsibilities**: How is functionality divided?
+           (clear separation of concerns, single responsibility)
+
+        **Instructions for Claude/LLM**:
+        - Apply service decomposition principles
+        - Recommend architectural patterns
+        - Design API contracts
+        - Validate data flow logic
+        - Consider scalability in design
+        - Apply KISS principle - keep it simple
+
+        Describe the architecture clearly and completely.
+      default: ""
+    depends_on: [phase2_confirmation]
+    condition: "{{blocks.phase2_confirmation.response}} contains 'proceed'"
+
+  - id: phase3_confirmation
+    type: Prompt
+    inputs:
+      message: |
+        Phase 3 captured. Your responses:
+        {{blocks.phase3_questions.response}}
+
+        Options:
+        - Type 'proceed' to continue to Phase 4
+        - Type 'refine' followed by updates
+        - Type 'expand' followed by additional details
+      default: "proceed"
+    depends_on: [phase3_questions]
+    condition: "{{blocks.phase3_questions.response}} != ''"
+
+  # ============================================================================
+  # PHASE 4: Technology Stack & Infrastructure
+  # ============================================================================
+
+  - id: phase4_questions
+    type: Prompt
+    inputs:
+      message: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        PHASE 4: Technology Stack & Infrastructure Design
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Select technologies and infrastructure:
+
+        1. **Technology Stack**: What languages, frameworks, libraries?
+           (specify for each service/component from Phase 3)
+
+        2. **Infrastructure Patterns**: How will you deploy and scale?
+           (containers, orchestration, cloud services, scaling strategy)
+
+        3. **Cross-Cutting Concerns**: How will you handle:
+           - Logging and monitoring
+           - Security (authentication, authorization, encryption)
+           - Observability and tracing
+           - Error handling and resilience
+
+        4. **Data Storage**: What databases and persistence patterns?
+           (relational, NoSQL, caching, message queues)
+
+        5. **Development Tools**: Build systems, testing frameworks, CI/CD
+           (toolchain for development and deployment)
+
+        **Instructions for Claude/LLM**:
+        - Research modern technology options
+        - Recommend infrastructure patterns
+        - Design security infrastructure
+        - Validate database choices
+        - Propose CI/CD pipeline
+        - Apply YAGNI - simplest stack that works
+
+        Be specific about technology choices and rationale.
+      default: ""
+    depends_on: [phase3_confirmation]
+    condition: "{{blocks.phase3_confirmation.response}} contains 'proceed'"
+
+  - id: phase4_confirmation
+    type: Prompt
+    inputs:
+      message: |
+        Phase 4 captured. Your responses:
+        {{blocks.phase4_questions.response}}
+
+        Options:
+        - Type 'proceed' to continue to Phase 5
+        - Type 'refine' followed by updates
+        - Type 'expand' followed by additional details
+      default: "proceed"
+    depends_on: [phase4_questions]
+    condition: "{{blocks.phase4_questions.response}} != ''"
+
+  # ============================================================================
+  # PHASE 5: Quality Attributes & Risk Assessment
+  # ============================================================================
+
+  - id: phase5_questions
+    type: Prompt
+    inputs:
+      message: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        PHASE 5: Quality Attributes & Risk Assessment
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Define quality requirements and assess risks:
+
+        1. **Quality Attributes**: What are your targets?
+           - Performance: Response times, throughput
+           - Availability: Uptime requirements, SLAs
+           - Security: Security standards, compliance
+           - Scalability: Growth targets, scaling approach
+
+        2. **Architectural Risks**: What are the biggest technical risks?
+           (complexity, dependencies, unknowns, technical debt)
+
+        3. **Reliability Strategy**: How will you ensure reliability?
+           - Fault tolerance mechanisms
+           - Resilience patterns
+           - Error handling approach
+           - Disaster recovery
+
+        4. **Failure Scenarios**: What are critical failure scenarios?
+           (identify top 3-5 failure modes and their business impact)
+
+        5. **Mitigation Plans**: How will you address identified risks?
+           (specific strategies for each major risk)
+
+        **Instructions for Claude/LLM**:
+        - Validate performance targets are achievable
+        - Assess security risk levels
+        - Design quality assurance strategy
+        - Analyze failure mode impacts
+        - Propose risk mitigation approaches
+
+        Be specific with measurable targets and concrete mitigation plans.
+      default: ""
+    depends_on: [phase4_confirmation]
+    condition: "{{blocks.phase4_confirmation.response}} contains 'proceed'"
+
+  - id: phase5_confirmation
+    type: Prompt
+    inputs:
+      message: |
+        Phase 5 captured. Your responses:
+        {{blocks.phase5_questions.response}}
+
+        Options:
+        - Type 'proceed' to continue to Phase 6 (final phase)
+        - Type 'refine' followed by updates
+        - Type 'expand' followed by additional details
+      default: "proceed"
+    depends_on: [phase5_questions]
+    condition: "{{blocks.phase5_questions.response}} != ''"
+
+  # ============================================================================
+  # PHASE 6: Validation & Documentation
+  # ============================================================================
+
+  - id: phase6_validation
+    type: Prompt
+    inputs:
+      message: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        PHASE 6: Architecture Validation & Documentation
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Final validation and roadmap phase.
+
+        **Instructions for Claude/LLM - Perform Validation**:
+
+        1. **Architectural Consistency**: Review all phases for consistency
+           - Do components align with constraints?
+           - Does tech stack support architecture?
+           - Are quality attributes achievable?
+
+        2. **Security Compliance**: Validate security across all phases
+           - Are security requirements comprehensive?
+           - Is security integrated into architecture?
+           - Are threats and mitigations identified?
+
+        3. **Performance Feasibility**: Check performance claims
+           - Are performance targets realistic?
+           - Does architecture support scale requirements?
+           - Are bottlenecks identified and addressed?
+
+        4. **Quality Standards**: Assess overall quality
+           - Is architecture testable?
+           - Are monitoring and observability included?
+           - Is documentation complete?
+
+        5. **RULES.md Compliance**:
+           - YAGNI: Any speculative features or over-engineering?
+           - KISS: Is this the simplest architecture that works?
+           - DRY: Any duplicated logic across services?
+
+        **Provide Validation Report**:
+        - Overall architecture quality score (1-10)
+        - Issues identified (if any)
+        - Compliance status (YAGNI/KISS/DRY)
+        - Recommendations for improvement
+
+        Type your validation assessment.
+      default: ""
+    depends_on: [phase5_confirmation]
+    condition: "{{blocks.phase5_confirmation.response}} contains 'proceed'"
+
+  - id: phase6_roadmap
+    type: Prompt
+    inputs:
+      message: |
+        Validation complete! Now provide roadmap and features:
+
+        1. **Development Roadmap**: What are the implementation phases?
+           (e.g., Phase 1: Core services, Phase 2: Integration, Phase 3: Scale)
+
+        2. **Key Architectural Decisions**: Summarize major decisions
+           (document the "why" behind important architectural choices)
+
+        3. **Feature Breakdown**: List features for implementation
+           Format each as: - **Feature Name**: Brief description
+
+           Example:
+           - **User Authentication**: OAuth 2.0 with JWT tokens
+           - **Payment Processing**: Stripe integration with webhook handling
+           - **Admin Dashboard**: React-based admin interface
+
+        Provide complete roadmap and feature list.
+      default: ""
+    depends_on: [phase6_validation]
+    condition: "{{blocks.phase6_validation.response}} != ''"
+
+  - id: phase6_final_review
+    type: Prompt
+    inputs:
+      message: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        PRD Complete - Final Review
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        All phases are complete! Review summary:
+
+        **Phase 1** - System Discovery: Captured
+        **Phase 2** - Constraints: Captured
+        **Phase 3** - Architecture: Captured
+        **Phase 4** - Technology Stack: Captured
+        **Phase 5** - Quality & Risks: Captured
+        **Phase 6** - Validation: {{blocks.phase6_validation.response}}
+        **Phase 6** - Roadmap: {{blocks.phase6_roadmap.response}}
+
+        Options:
+        1. **Generate PRD** - Type 'generate' to create the document
+        2. **Refine Phase** - Type 'refine-N' (where N=1-6) to revise a phase
+        3. **Abort** - Type 'abort' to cancel
+
+        What would you like to do?
+      default: "generate"
+    depends_on: [phase6_roadmap]
+    condition: "{{blocks.phase6_roadmap.response}} != ''"
+
+  # ============================================================================
+  # DATA AGGREGATION & PRD GENERATION
+  # ============================================================================
+
+  - id: aggregate_data
+    type: Shell
+    inputs:
+      command: |
+        # Create PRD data JSON from all phases
+        cat > /tmp/prd-data-$$.json << 'EOFDATA'
+        {
+          "PROJECT_NAME": "{{inputs.project_name}}",
+          "DATE": "$(date +%Y-%m-%d)",
+          "AUTHOR": "$(git config user.name)",
+
+          "SYSTEM_OVERVIEW": "{{blocks.phase1_questions.response}}",
+          "CONSTRAINTS_AND_BOUNDARIES": "{{blocks.phase2_questions.response}}",
+          "ARCHITECTURE_DESIGN": "{{blocks.phase3_questions.response}}",
+          "TECHNOLOGY_STACK": "{{blocks.phase4_questions.response}}",
+          "QUALITY_AND_RISKS": "{{blocks.phase5_questions.response}}",
+          "VALIDATION_REPORT": "{{blocks.phase6_validation.response}}",
+          "ROADMAP_AND_FEATURES": "{{blocks.phase6_roadmap.response}}"
+        }
+        EOFDATA
+
+        echo "/tmp/prd-data-$$.json"
+    depends_on: [phase6_final_review]
+    condition: "{{blocks.phase6_final_review.response}} contains 'generate'"
+
+  - id: generate_prd_content
+    type: Shell
+    inputs:
+      command: |
+        # Generate PRD markdown content from collected data
+        cat << 'EOFPRD'
+        # {{inputs.project_name}}
+
+        **Product Requirements Document**
+
+        - **Date**: $(date +%Y-%m-%d)
+        - **Author**: $(git config user.name)
+        - **Status**: Draft
+
+        ---
+
+        ## 1. System Overview
+
+        {{blocks.phase1_questions.response}}
+
+        ---
+
+        ## 2. Constraints & Boundaries
+
+        {{blocks.phase2_questions.response}}
+
+        ---
+
+        ## 3. System Architecture
+
+        {{blocks.phase3_questions.response}}
+
+        ---
+
+        ## 4. Technology Stack
+
+        {{blocks.phase4_questions.response}}
+
+        ---
+
+        ## 5. Quality Attributes & Risk Assessment
+
+        {{blocks.phase5_questions.response}}
+
+        ---
+
+        ## 6. Architectural Validation
+
+        {{blocks.phase6_validation.response}}
+
+        ---
+
+        ## 7. Development Roadmap
+
+        {{blocks.phase6_roadmap.response}}
+
+        ---
+
+        ## Appendices
+
+        ### Engineering Principles
+
+        This architecture follows these core principles:
+
+        - **YAGNI** (You Aren't Gonna Need It): No speculative features or premature optimization
+        - **KISS** (Keep It Simple): Simplest architecture that meets requirements
+        - **DRY** (Don't Repeat Yourself): Single source of truth for all logic
+
+        ### Quality Assurance
+
+        All architectural decisions have been validated across:
+        - Architectural consistency
+        - Security compliance
+        - Performance feasibility
+        - Testability and maintainability
+
+        ---
+
+        *Generated with Claude Code Workflows - PRD Interactive Generation*
+        EOFPRD
+    depends_on: [aggregate_data]
+    condition: "{{blocks.aggregate_data.succeeded}}"
+
+  - id: write_prd_file
+    type: CreateFile
+    inputs:
+      path: "{{blocks.setup.outputs.worktree_path}}/{{inputs.output_filename}}"
+      content: "{{blocks.generate_prd_content.outputs.stdout}}"
+    depends_on: [generate_prd_content]
+    condition: "{{blocks.generate_prd_content.succeeded}}"
+
+  - id: finalize
+    type: Workflow
+    inputs:
+      workflow: "prd-finalize"
+      inputs:
+        worktree_path: "{{blocks.setup.outputs.worktree_path}}"
+        project_name: "{{inputs.project_name}}"
+        prd_data: "{{blocks.aggregate_data.outputs.stdout}}"
+    depends_on: [write_prd_file]
+    condition: "{{blocks.write_prd_file.succeeded}}"
+
+  # ============================================================================
+  # OPTIONAL: FEATURE EXTRACTION
+  # ============================================================================
+
+  - id: ask_feature_extraction
+    type: Prompt
+    inputs:
+      message: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        ✅ PRD Generated Successfully!
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        **Generated Documents**:
+        - PRD File: {{blocks.finalize.outputs.prd_path}}
+        - Git Commit: {{blocks.finalize.outputs.commit_sha}}
+        - GitHub PR: {{blocks.finalize.outputs.pr_url}}
+
+        **Feature Extraction (Optional)**:
+        Would you like to extract features from the roadmap and create GitHub issues?
+
+        Type 'yes' to create issues, or 'no' to skip.
+      default: "no"
+    depends_on: [finalize]
+    condition: "{{blocks.finalize.succeeded}}"
+
+  - id: extract_features
+    type: Workflow
+    inputs:
+      workflow: "prd-extract-features"
+      inputs:
+        prd_path: "{{blocks.finalize.outputs.prd_path}}"
+        project_name: "{{inputs.project_name}}"
+        milestone: "v1.0"
+    depends_on: [ask_feature_extraction]
+    condition: "{{blocks.ask_feature_extraction.response}} == 'yes'"
+
+  # ============================================================================
+  # COMPLETION SUMMARY
+  # ============================================================================
+
+  - id: completion_summary
+    type: Shell
+    inputs:
+      command: |
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "✅ PRD Generation Complete!"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "📄 **Generated Documents**:"
+        echo "   PRD: {{blocks.finalize.outputs.prd_path}}"
+        echo "   Commit: {{blocks.finalize.outputs.commit_sha}}"
+        echo ""
+        echo "🔗 **GitHub Integration**:"
+        echo "   PR: {{blocks.finalize.outputs.pr_url}}"
+
+        if [ "{{blocks.extract_features.succeeded}}" = "true" ]; then
+          echo "   Issues: {{blocks.extract_features.outputs.issue_count}} feature issues created"
+        fi
+
+        echo ""
+        echo "📋 **Next Steps**:"
+        echo "   1. Review the PRD document in the GitHub PR"
+        echo "   2. Request architectural approval from your team"
+        echo "   3. Validate and prioritize feature issues"
+        echo "   4. Begin implementation planning"
+        echo ""
+        echo "🗂️  **Worktree Location**: {{blocks.setup.outputs.worktree_path}}"
+        echo "   (Cleanup after PR merge: git worktree remove <path>)"
+        echo ""
+    depends_on: [finalize]
+    condition: "{{blocks.finalize.succeeded}}"

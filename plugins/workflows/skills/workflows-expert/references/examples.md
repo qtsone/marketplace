@@ -102,7 +102,7 @@ blocks:
     inputs:
       workflow: "git-checkout-branch"
       inputs:
-        branch: "feature/${inputs.feature_name}"
+        branch: "feature/{{inputs.feature_name}}"
         create: true
 
   - id: commit_changes
@@ -110,13 +110,13 @@ blocks:
     inputs:
       workflow: "git-commit-and-push"
       inputs:
-        message: "${inputs.commit_message}"
+        message: "{{inputs.commit_message}}"
     depends_on: [create_branch]
-    condition: "${blocks.create_branch.succeeded}"
+    condition: "{{blocks.create_branch.succeeded}}"
 
 outputs:
-  branch: "${blocks.create_branch.outputs.branch}"
-  commit_sha: "${blocks.commit_changes.outputs.commit_sha}"
+  branch: "{{blocks.create_branch.outputs.branch}}"
+  commit_sha: "{{blocks.commit_changes.outputs.commit_sha}}"
 ```
 
 **Execute:**
@@ -154,13 +154,13 @@ blocks:
     type: Shell
     inputs:
       command: "pytest tests/unit/ -v"
-    condition: "${inputs.skip_tests} == false"
+    condition: "{{inputs.skip_tests}} == false"
 
   - id: run_integration_tests
     type: Shell
     inputs:
       command: "pytest tests/integration/ -v"
-    condition: "${inputs.skip_tests} == false"
+    condition: "{{inputs.skip_tests}} == false"
 
   # Stage 2: Build
   - id: build_app
@@ -169,8 +169,8 @@ blocks:
       command: "npm run build"
     depends_on: [run_unit_tests, run_integration_tests]
     condition: >
-      ${inputs.skip_tests} == true or
-      (${blocks.run_unit_tests.succeeded} and ${blocks.run_integration_tests.succeeded})
+      {{inputs.skip_tests}} == true or
+      ({{blocks.run_unit_tests.succeeded}} and {{blocks.run_integration_tests.succeeded}})
 
   # Stage 3: Environment-specific deployment
   - id: deploy_staging
@@ -179,8 +179,8 @@ blocks:
       command: "./deploy.sh staging"
     depends_on: [build_app]
     condition: >
-      ${blocks.build_app.succeeded} and
-      ${inputs.environment} == 'staging'
+      {{blocks.build_app.succeeded}} and
+      {{inputs.environment}} == 'staging'
 
   - id: deploy_production
     type: Shell
@@ -188,31 +188,31 @@ blocks:
       command: "./deploy.sh production"
     depends_on: [build_app]
     condition: >
-      ${blocks.build_app.succeeded} and
-      ${inputs.environment} == 'production'
+      {{blocks.build_app.succeeded}} and
+      {{inputs.environment}} == 'production'
 
   # Stage 4: Verification
   - id: verify_deployment
     type: Shell
     inputs:
-      command: "curl -f https://${inputs.environment}.example.com/health"
+      command: "curl -f https://{{inputs.environment}}.example.com/health"
     depends_on: [deploy_staging, deploy_production]
     condition: >
-      ${blocks.deploy_staging.succeeded} or
-      ${blocks.deploy_production.succeeded}
+      {{blocks.deploy_staging.succeeded}} or
+      {{blocks.deploy_production.succeeded}}
 
   # Stage 5: Rollback on failure
   - id: rollback
     type: Shell
     inputs:
-      command: "./rollback.sh ${inputs.environment}"
+      command: "./rollback.sh {{inputs.environment}}"
     depends_on: [verify_deployment]
-    condition: "${blocks.verify_deployment.failed}"
+    condition: "{{blocks.verify_deployment.failed}}"
 
 outputs:
-  deployed: "${blocks.verify_deployment.succeeded}"
-  environment: "${inputs.environment}"
-  rollback_executed: "${blocks.rollback.status} != 'skipped'"
+  deployed: "{{blocks.verify_deployment.succeeded}}"
+  environment: "{{inputs.environment}}"
+  rollback_executed: "{{blocks.rollback.status}} != 'skipped'"
 ```
 
 ## Example 4: File Processing Pipeline
@@ -235,14 +235,14 @@ blocks:
   - id: read_input
     type: ReadFile
     inputs:
-      path: "${inputs.input_file}"
+      path: "{{inputs.input_file}}"
 
   - id: validate_data
     type: Shell
     inputs:
       command: "python validate.py"
       env:
-        DATA_CONTENT: "${blocks.read_input.content}"
+        DATA_CONTENT: "{{blocks.read_input.content}}"
     depends_on: [read_input]
 
   - id: process_data
@@ -258,46 +258,46 @@ blocks:
         ## Processed Data
         {{ processed_content }}
       variables:
-        input_file: "${inputs.input_file}"
-        file_size: "${blocks.read_input.size}"
-        validation_status: "${blocks.validate_data.succeeded}"
-        processed_content: "${blocks.read_input.content}"
+        input_file: "{{inputs.input_file}}"
+        file_size: "{{blocks.read_input.size}}"
+        validation_status: "{{blocks.validate_data.succeeded}}"
+        processed_content: "{{blocks.read_input.content}}"
     depends_on: [validate_data]
-    condition: "${blocks.validate_data.succeeded}"
+    condition: "{{blocks.validate_data.succeeded}}"
 
   - id: save_report
     type: CreateFile
     inputs:
-      path: "${inputs.output_dir}/report.md"
-      content: "${blocks.process_data.rendered}"
+      path: "{{inputs.output_dir}}/report.md"
+      content: "{{blocks.process_data.rendered}}"
     depends_on: [process_data]
 
   - id: save_state
     type: SaveState
     inputs:
-      path: "${inputs.output_dir}/state.json"
+      path: "{{inputs.output_dir}}/state.json"
       data:
-        input_file: "${inputs.input_file}"
-        input_size: "${blocks.read_input.size}"
-        output_path: "${blocks.save_report.path}"
-        validation_passed: "${blocks.validate_data.succeeded}"
-        timestamp: "${metadata.start_time}"
+        input_file: "{{inputs.input_file}}"
+        input_size: "{{blocks.read_input.size}}"
+        output_path: "{{blocks.save_report.path}}"
+        validation_passed: "{{blocks.validate_data.succeeded}}"
+        timestamp: "{{metadata.start_time}}"
     depends_on: [save_report]
 
   - id: error_report
     type: CreateFile
     inputs:
-      path: "${inputs.output_dir}/error.log"
+      path: "{{inputs.output_dir}}/error.log"
       content: |
-        Validation failed for ${inputs.input_file}
-        Error: ${blocks.validate_data.outputs.stderr}
+        Validation failed for {{inputs.input_file}}
+        Error: {{blocks.validate_data.outputs.stderr}}
     depends_on: [validate_data]
-    condition: "${blocks.validate_data.failed}"
+    condition: "{{blocks.validate_data.failed}}"
 
 outputs:
-  success: "${blocks.save_state.succeeded}"
-  report_path: "${blocks.save_report.path}"
-  error_log: "${blocks.error_report.path}"
+  success: "{{blocks.save_state.succeeded}}"
+  report_path: "{{blocks.save_report.path}}"
+  error_log: "{{blocks.error_report.path}}"
 ```
 
 ## Example 5: Parallel Testing with Aggregation
@@ -318,32 +318,31 @@ blocks:
   - id: unit_tests
     type: Shell
     inputs:
-      command: "pytest tests/unit/ --junitxml=unit-results.xml"
-      working_dir: "${inputs.project_path}"
+      working_dir: "{{inputs.project_path}}"
 
   - id: integration_tests
     type: Shell
     inputs:
       command: "pytest tests/integration/ --junitxml=integration-results.xml"
-      working_dir: "${inputs.project_path}"
+      working_dir: "{{inputs.project_path}}"
 
   - id: e2e_tests
     type: Shell
     inputs:
       command: "pytest tests/e2e/ --junitxml=e2e-results.xml"
-      working_dir: "${inputs.project_path}"
+      working_dir: "{{inputs.project_path}}"
 
   - id: lint_check
     type: Shell
     inputs:
       command: "ruff check ."
-      working_dir: "${inputs.project_path}"
+      working_dir: "{{inputs.project_path}}"
 
   - id: type_check
     type: Shell
     inputs:
       command: "mypy src/"
-      working_dir: "${inputs.project_path}"
+      working_dir: "{{inputs.project_path}}"
 
   # Aggregate results
   - id: aggregate_results
@@ -364,34 +363,34 @@ blocks:
         ## Overall Status
         All Passed: {{ all_passed }}
       variables:
-        unit_status: "${blocks.unit_tests.succeeded}"
-        integration_status: "${blocks.integration_tests.succeeded}"
-        e2e_status: "${blocks.e2e_tests.succeeded}"
-        lint_status: "${blocks.lint_check.succeeded}"
-        type_status: "${blocks.type_check.succeeded}"
+        unit_status: "{{blocks.unit_tests.succeeded}}"
+        integration_status: "{{blocks.integration_tests.succeeded}}"
+        e2e_status: "{{blocks.e2e_tests.succeeded}}"
+        lint_status: "{{blocks.lint_check.succeeded}}"
+        type_status: "{{blocks.type_check.succeeded}}"
         all_passed: >
-          ${blocks.unit_tests.succeeded} and
-          ${blocks.integration_tests.succeeded} and
-          ${blocks.e2e_tests.succeeded} and
-          ${blocks.lint_check.succeeded} and
-          ${blocks.type_check.succeeded}
+          {{blocks.unit_tests.succeeded}} and
+          {{blocks.integration_tests.succeeded}} and
+          {{blocks.e2e_tests.succeeded}} and
+          {{blocks.lint_check.succeeded}} and
+          {{blocks.type_check.succeeded}}
     depends_on: [unit_tests, integration_tests, e2e_tests, lint_check, type_check]
 
   - id: save_summary
     type: CreateFile
     inputs:
-      path: "${inputs.project_path}/test-summary.md"
-      content: "${blocks.aggregate_results.rendered}"
+      path: "{{inputs.project_path}}/test-summary.md"
+      content: "{{blocks.aggregate_results.rendered}}"
     depends_on: [aggregate_results]
 
 outputs:
   all_passed: >
-    ${blocks.unit_tests.succeeded} and
-    ${blocks.integration_tests.succeeded} and
-    ${blocks.e2e_tests.succeeded} and
-    ${blocks.lint_check.succeeded} and
-    ${blocks.type_check.succeeded}
-  summary_path: "${blocks.save_summary.path}"
+    {{blocks.unit_tests.succeeded}} and
+    {{blocks.integration_tests.succeeded}} and
+    {{blocks.e2e_tests.succeeded}} and
+    {{blocks.lint_check.succeeded}} and
+    {{blocks.type_check.succeeded}}
+  summary_path: "{{blocks.save_summary.path}}"
 ```
 
 ## Example 6: Interactive Deployment with Approval
@@ -418,36 +417,36 @@ blocks:
   - id: build_artifact
     type: Shell
     inputs:
-      command: "docker build -t myapp:${inputs.version} ."
+      command: "docker build -t myapp:{{inputs.version}} ."
     depends_on: [run_tests]
-    condition: "${blocks.run_tests.succeeded}"
+    condition: "{{blocks.run_tests.succeeded}}"
 
   - id: ask_approval
     type: Prompt
     inputs:
-      message: "Deploy version ${inputs.version} to production? (yes/no)"
+      message: "Deploy version {{inputs.version}} to production? (yes/no)"
       default: "no"
     depends_on: [build_artifact]
-    condition: "${blocks.build_artifact.succeeded}"
+    condition: "{{blocks.build_artifact.succeeded}}"
 
   - id: deploy_production
     type: Shell
     inputs:
       command: "kubectl apply -f k8s/production/"
     depends_on: [ask_approval]
-    condition: "${blocks.ask_approval.response} == 'yes'"
+    condition: "{{blocks.ask_approval.response}} == 'yes'"
 
   - id: verify_deployment
     type: Shell
     inputs:
       command: "kubectl rollout status deployment/myapp"
     depends_on: [deploy_production]
-    condition: "${blocks.deploy_production.succeeded}"
+    condition: "{{blocks.deploy_production.succeeded}}"
 
 outputs:
-  deployed: "${blocks.deploy_production.succeeded}"
-  verified: "${blocks.verify_deployment.succeeded}"
-  version: "${inputs.version}"
+  deployed: "{{blocks.deploy_production.succeeded}}"
+  verified: "{{blocks.verify_deployment.succeeded}}"
+  version: "{{inputs.version}}"
 ```
 
 ## Common Usage Patterns
@@ -466,7 +465,7 @@ blocks:
     inputs:
       command: "rm -rf build-cache/"
     depends_on: [main_operation]
-    condition: "${blocks.main_operation.status} == 'completed'"
+    condition: "{{blocks.main_operation.status}} == 'completed'"
 ```
 
 ### Pattern: Retry on Failure
@@ -483,21 +482,21 @@ blocks:
     inputs:
       command: "./flaky-operation.sh"
     depends_on: [attempt_1]
-    condition: "${blocks.attempt_1.failed}"
+    condition: "{{blocks.attempt_1.failed}}"
 
   - id: attempt_3
     type: Shell
     inputs:
       command: "./flaky-operation.sh"
     depends_on: [attempt_2]
-    condition: "${blocks.attempt_2.failed}"
+    condition: "{{blocks.attempt_2.failed}}"
 
   - id: final_failure
     type: Shell
     inputs:
       command: "echo 'All attempts failed' && exit 1"
     depends_on: [attempt_3]
-    condition: "${blocks.attempt_3.failed}"
+    condition: "{{blocks.attempt_3.failed}}"
 ```
 
 ### Pattern: Workflow Composition for Reusability
@@ -509,22 +508,20 @@ blocks:
     inputs:
       workflow: "setup-python-env"
       inputs:
-        python_version: "${inputs.python_version}"
+        python_version: "{{inputs.python_version}}"
 
   - id: run_tests
     type: Workflow
     inputs:
-      workflow: "run-pytest"
-      inputs:
-        project_path: "${inputs.project_path}"
-    depends_on: [setup_env]
-
+            inputs:
+              project_path: "{{inputs.project_path}}"
+          depends_on: [setup_env]
   - id: run_linting
     type: Workflow
     inputs:
       workflow: "lint-python"
       inputs:
-        project_path: "${inputs.project_path}"
+        project_path: "{{inputs.project_path}}"
     depends_on: [setup_env]
 ```
 

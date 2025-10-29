@@ -1,0 +1,138 @@
+name: prd-extract-features
+description: Extract features from PRD document and create GitHub issues with proper formatting
+tags: [prd, features, github, issues, automation]
+
+inputs:
+  prd_path:
+    type: str
+    required: true
+    description: Path to the PRD document (PROJECT.md)
+  project_name:
+    type: str
+    required: true
+    description: Project name for issue prefixes and labels
+  milestone:
+    type: str
+    required: false
+    description: Optional GitHub milestone for created issues
+
+outputs:
+  issue_count:
+    type: str
+    description: Number of issues created
+    value: "{{blocks.count_issues.outputs.stdout}}"
+  issue_urls:
+    type: str
+    description: Newline-separated list of created issue URLs
+    value: "{{blocks.create_issues.outputs.stdout}}"
+
+blocks:
+  - id: extract_features
+    type: Shell
+    inputs:
+      command: |
+        # Extract features from PRD Feature Breakdown section
+        if ! grep -q "## Feature Breakdown" "{{inputs.prd_path}}"; then
+          echo "No Feature Breakdown section found in PRD" >&2
+          exit 1
+        fi
+
+        # Extract feature lines (format: - **Feature Name**: Description)
+        grep -A 1000 "## Feature Breakdown" "{{inputs.prd_path}}" | \
+          grep -E '^\- \*\*' > /tmp/features-$$.txt
+
+        FEATURE_COUNT=$(wc -l < /tmp/features-$$.txt | tr -d ' ')
+        echo "Extracted $FEATURE_COUNT features from PRD"
+        echo "$FEATURE_COUNT"
+
+  - id: convert_to_json
+    type: Shell
+    inputs:
+      command: |
+        # Convert feature lines to JSON for bulk issue creation
+        cat > /tmp/features-$$.json << 'JSON_START'
+        {
+          "issues": [
+        JSON_START
+
+        # Process each feature line
+        FIRST=true
+        while IFS= read -r line; do
+          # Extract feature name and description
+          FEATURE_NAME=$(echo "$line" | sed -E 's/^- \*\*(.+)\*\*:.*/\1/')
+          FEATURE_DESC=$(echo "$line" | sed -E 's/^- \*\*.+\*\*: (.+)/\1/')
+
+          # Add comma separator except for first item
+          if [ "$FIRST" = false ]; then
+            echo "," >> /tmp/features-$$.json
+          fi
+          FIRST=false
+
+          # Create issue JSON entry
+          MILESTONE_FIELD=""
+          if [ -n "{{inputs.milestone}}" ]; then
+            MILESTONE_FIELD=", \"milestone\": \"{{inputs.milestone}}\""
+          fi
+
+          cat >> /tmp/features-$$.json << ISSUE_JSON
+            {
+              "title": "feat: $FEATURE_NAME",
+              "body": "## Feature Description\n$FEATURE_DESC\n\n## Related PRD\nSee PROJECT.md for complete architectural context\n\n---\n🤖 Derived from PRD: docs/prd-{{inputs.project_name}}",
+              "labels": ["feature", "prd-derived"]$MILESTONE_FIELD
+            }
+        ISSUE_JSON
+        done < /tmp/features-$$.txt
+
+        # Close JSON array
+        cat >> /tmp/features-$$.json << 'JSON_END'
+          ]
+        }
+        JSON_END
+
+        echo "/tmp/features-$$.json"
+    depends_on: [extract_features]
+    condition: "{{blocks.extract_features.succeeded}}"
+
+  - id: validate_json
+    type: Shell
+    inputs:
+      command: |
+        # Validate JSON structure
+        if ! jq empty "{{blocks.convert_to_json.outputs.stdout}}" 2>/dev/null; then
+          echo "Invalid JSON structure" >&2
+          exit 1
+        fi
+
+        ISSUE_COUNT=$(jq '.issues | length' "{{blocks.convert_to_json.outputs.stdout}}")
+        echo "Validated JSON with $ISSUE_COUNT issues"
+    depends_on: [convert_to_json]
+    condition: "{{blocks.convert_to_json.succeeded}}"
+
+  - id: create_issues
+    type: Shell
+    inputs:
+      command: |
+        # Create issues with rate limiting (1 second delay)
+        ~/.claude/scripts/helpers/github/bulk-create-issues.sh \
+          --delay 1 \
+          "{{blocks.convert_to_json.outputs.stdout}}"
+    depends_on: [validate_json]
+    condition: "{{blocks.validate_json.succeeded}}"
+
+  - id: count_issues
+    type: Shell
+    inputs:
+      command: |
+        # Count created issues
+        ISSUE_COUNT=$(echo "{{blocks.create_issues.outputs.stdout}}" | grep -c "https://github.com" || echo "0")
+        echo "$ISSUE_COUNT"
+    depends_on: [create_issues]
+    condition: "{{blocks.create_issues.succeeded}}"
+
+  - id: cleanup_temp
+    type: Shell
+    inputs:
+      command: |
+        rm -f /tmp/features-$$.txt /tmp/features-$$.json
+        echo "Cleanup complete"
+    depends_on: [count_issues]

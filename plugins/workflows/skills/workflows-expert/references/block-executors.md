@@ -39,7 +39,7 @@ stderr: string          # Standard error
 
 **Status Check**:
 ```yaml
-condition: "${blocks.run_tests.succeeded}"  # Exit code was 0
+condition: "{{blocks.run_tests.succeeded}}"  # Exit code was 0
 ```
 
 ---
@@ -65,7 +65,7 @@ inputs: object          # Workflow inputs (optional)
   inputs:
     workflow: "python-ci-pipeline"
     inputs:
-      project_path: "${inputs.workspace}"
+      project_path: "{{inputs.workspace}}"
       python_version: "3.12"
 ```
 
@@ -100,12 +100,12 @@ size: integer           # File size in bytes
 - id: create_readme
   type: CreateFile
   inputs:
-    path: "${blocks.setup.project_dir}/README.md"
+    path: "{{blocks.setup.project_dir}}/README.md"
     content: |
-      # ${inputs.project_name}
+      # {{inputs.project_name}}
 
-      Version: ${inputs.version}
-      Created: ${metadata.start_time}
+      Version: {{inputs.version}}
+      Created: {{metadata.start_time}}
     permissions: "644"
 ```
 
@@ -141,7 +141,7 @@ size: integer           # File size in bytes
 - id: process_config
   type: Shell
   inputs:
-    command: "echo '${blocks.read_config.content}' | jq .version"
+    command: "echo '{{blocks.read_config.content}}' | jq .version"
   depends_on: [read_config]
 ```
 
@@ -177,15 +177,15 @@ rendered: string        # Rendered template content
 
       Tests passed: {{ tests_passed }}
     variables:
-      project_name: "${inputs.project_name}"
-      version: "${inputs.version}"
-      tests_passed: "${blocks.run_tests.succeeded}"
+      project_name: "{{inputs.project_name}}"
+      version: "{{inputs.version}}"
+      tests_passed: "{{blocks.run_tests.succeeded}}"
 
 - id: save_readme
   type: CreateFile
   inputs:
     path: "README.md"
-    content: "${blocks.render_readme.rendered}"
+    content: "{{blocks.render_readme.rendered}}"
   depends_on: [render_readme]
 ```
 
@@ -217,9 +217,9 @@ path: string            # Saved file path
   inputs:
     path: "workflow-state.json"
     data:
-      test_results: "${blocks.run_tests.exit_code}"
-      deploy_status: "${blocks.deploy.succeeded}"
-      timestamp: "${metadata.start_time}"
+      test_results: "{{blocks.run_tests.exit_code}}"
+      deploy_status: "{{blocks.deploy.succeeded}}"
+      timestamp: "{{metadata.start_time}}"
 ```
 
 ---
@@ -250,7 +250,7 @@ data: object            # Loaded data
 - id: compare_results
   type: Shell
   inputs:
-    command: "echo Previous: ${blocks.load_previous.data.test_results}"
+    command: "echo Previous: {{blocks.load_previous.data.test_results}}"
   depends_on: [load_previous]
 ```
 
@@ -288,7 +288,7 @@ response: string        # User's response
   inputs:
     command: "./deploy.sh production"
   depends_on: [ask_deploy]
-  condition: "${blocks.ask_deploy.response} == 'yes'"
+  condition: "{{blocks.ask_deploy.response}} == 'yes'"
 ```
 
 **Resume with**:
@@ -336,18 +336,18 @@ All blocks follow the same execution model:
 **Use these 90% of the time**:
 
 ```yaml
-${blocks.test.succeeded}    # Operation succeeded
-${blocks.test.failed}       # Operation failed (or crashed)
-${blocks.test.skipped}      # Condition was false
+{{blocks.test.succeeded}}    # Operation succeeded
+{{blocks.test.failed}}       # Operation failed (or crashed)
+{{blocks.test.skipped}}      # Condition was false
 ```
 
 **Precision control when needed**:
 
 ```yaml
-${blocks.test.status} == 'completed'    # Executor finished
-${blocks.test.status} == 'failed'       # Executor crashed
-${blocks.test.outcome} == 'success'     # Operation succeeded
-${blocks.test.outcome} == 'failure'     # Operation failed
+{{blocks.test.status}} == 'completed'    # Executor finished
+{{blocks.test.status}} == 'failed'       # Executor crashed
+{{blocks.test.outcome}} == 'success'     # Operation succeeded
+{{blocks.test.outcome}} == 'failure'     # Operation failed
 ```
 
 ---
@@ -400,21 +400,21 @@ blocks:
   - id: check_env
     type: Shell
     inputs:
-      command: "echo ${inputs.environment}"
+      command: "echo {{inputs.environment}}"
 
   - id: deploy_staging
     type: Shell
     inputs:
       command: "./deploy.sh staging"
     depends_on: [check_env]
-    condition: "${inputs.environment} == 'staging'"
+    condition: "{{inputs.environment}} == 'staging'"
 
   - id: deploy_production
     type: Shell
     inputs:
       command: "./deploy.sh production"
     depends_on: [check_env]
-    condition: "${inputs.environment} == 'production'"
+    condition: "{{inputs.environment}} == 'production'"
 ```
 
 ### Pattern 4: Error Handling
@@ -431,21 +431,21 @@ blocks:
     inputs:
       command: "echo Success cleanup"
     depends_on: [risky_operation]
-    condition: "${blocks.risky_operation.succeeded}"
+    condition: "{{blocks.risky_operation.succeeded}}"
 
   - id: cleanup_failure
     type: Shell
     inputs:
       command: "echo Failure cleanup"
     depends_on: [risky_operation]
-    condition: "${blocks.risky_operation.failed}"
+    condition: "{{blocks.risky_operation.failed}}"
 
   - id: cleanup_always
     type: Shell
     inputs:
       command: "echo Always cleanup"
     depends_on: [risky_operation]
-    condition: "${blocks.risky_operation.status} == 'completed'"
+    condition: "{{blocks.risky_operation.status}} == 'completed'"
 ```
 
 ### Pattern 5: File Processing Pipeline
@@ -462,14 +462,14 @@ blocks:
     inputs:
       template: "Processed: {{ data }}"
       variables:
-        data: "${blocks.read_input.content}"
+        data: "{{blocks.read_input.content}}"
     depends_on: [read_input]
 
   - id: save_output
     type: CreateFile
     inputs:
       path: "output.txt"
-      content: "${blocks.process_data.rendered}"
+      content: "{{blocks.process_data.rendered}}"
     depends_on: [process_data]
 
   - id: save_state
@@ -477,8 +477,8 @@ blocks:
     inputs:
       path: "state.json"
       data:
-        input_size: "${blocks.read_input.size}"
-        output_path: "${blocks.save_output.path}"
+        input_size: "{{blocks.read_input.size}}"
+        output_path: "{{blocks.save_output.path}}"
     depends_on: [save_output]
 ```
 
@@ -511,22 +511,22 @@ blocks:
 ### 3. Use Boolean Shortcuts
 ```yaml
 # Good
-condition: "${blocks.test.succeeded}"
+condition: "{{blocks.test.succeeded}}"
 
 # Less good (but valid)
-condition: "${blocks.test.outputs.exit_code} == 0"
+condition: "{{blocks.test.outputs.exit_code}} == 0"
 ```
 
 ### 4. Handle Both Success and Failure
 ```yaml
 - id: deploy
-  condition: "${blocks.test.succeeded}"
+  condition: "{{blocks.test.succeeded}}"
 
 - id: notify_success
-  condition: "${blocks.deploy.succeeded}"
+  condition: "{{blocks.deploy.succeeded}}"
 
 - id: notify_failure
-  condition: "${blocks.deploy.failed}"
+  condition: "{{blocks.deploy.failed}}"
 ```
 
 ### 5. Use Workflow Composition
@@ -550,14 +550,14 @@ condition: "${blocks.test.outputs.exit_code} == 0"
 3. Verify block ID spelling (case-sensitive)
 
 ### Variable Not Resolving
-1. Check namespace: `${blocks.id.outputs.field}`
+1. Check namespace: `{{blocks.id.outputs.field}}`
 2. Verify block completed before reference
 3. Check output field name in workflow info
 
 ### Exit Code Confusion
 - `exit_code == 0` means command succeeded
 - `exit_code != 0` means command failed
-- Use `${blocks.id.succeeded}` for cleaner checks
+- Use `{{blocks.id.succeeded}}` for cleaner checks
 
 ### Workflow Composition Issues
 1. Verify workflow exists: `list_workflows()`

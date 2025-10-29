@@ -1,167 +1,66 @@
 ---
 name: workflows-expert
-description: Expert knowledge for using workflows-mcp MCP server to execute DAG-based workflows with proper variable syntax, conditionals, and best practices
+description: Activate for workflow execution, CI/CD pipelines, git operations, or multi-step task orchestration. Provides workflows-mcp MCP server integration with tag-based workflow discovery, DAG-based execution, and variable syntax expertise. Use when requests mention "run workflow", "execute workflow", "orchestrate tasks", "automate CI/CD", "multi-step process", or "workflow information".
 ---
 
 # Workflows MCP Expert Skill
 
-Use this skill when the user wants to execute workflows, orchestrate multi-step tasks, or use the workflows-mcp MCP server.
+Activate for workflow execution, multi-step task orchestration, and workflows-mcp MCP server operations.
 
-## When to Activate
+## Activation Triggers
 
-Activate this skill when the user mentions:
+Activate when requests mention:
 - "run a workflow" or "execute workflow"
 - "list workflows" or "what workflows are available"
+- "orchestrate multi-step tasks" or "DAG execution"
+- "CI/CD pipeline", "git automation", "automated testing"
 - "workflow information" or "workflow details"
-- Working with CI/CD pipelines, git operations, or automated tasks
-- Multi-step task orchestration
-- DAG-based execution
+- Multi-step task coordination with dependencies
+- "Chain multiple commands" or "automate my workflow"
 
-Common user phrases that trigger this skill:
+Common user phrases:
 - "I need to run tests before deploying"
 - "Create a multi-step build pipeline"
 - "Execute this only if the previous step succeeds"
-- "Orchestrate tasks with dependencies"
 - "Run these tasks in parallel"
-- "Chain multiple commands together"
 - "Automate my CI/CD workflow"
 
-## Core Concepts
+## Core Workflow Pattern
 
-### Available MCP Tools
+**Standard execution pattern: Discover → Inspect → Execute**
 
-The workflows-mcp server provides these tools:
+### Step 1: Discover Workflows by Tags
 
-1. **list_workflows(tags, format)** - Discover workflows by tags
-   - Filter by tags (AND logic): `tags=['python', 'testing']`
-   - Format: `json` or `markdown`
-   - Returns workflow names only
+**Always use tag-based discovery** instead of guessing workflow names.
 
-2. **get_workflow_info(workflow, format)** - Get detailed workflow information
-   - Shows inputs, outputs, blocks, dependencies
-   - Format: `json` or `markdown`
-   - **call this before executing** to understand requirements
-
-3. **execute_workflow(workflow, inputs, response_format)** - Execute a registered workflow
-   - Provide required inputs from `get_workflow_info()`
-   - Response format: `minimal` (highly recommended) or `detailed` (only for debugging)
-
-4. **execute_inline_workflow(workflow_yaml, inputs)** - Execute YAML directly without registration
-   - Useful for one-off or custom workflows
-   - Validate first with `validate_workflow_yaml()`
-
-5. **validate_workflow_yaml(yaml_content)** - Validate workflow YAML before execution
-   - Catches syntax errors early
-   - Returns validation errors with helpful messages
-
-**Checkpoint Management Tools** (for interactive workflows with Prompt blocks):
-- **resume_workflow(checkpoint_id, response)** - Resume paused workflow
-- **list_checkpoints()** - See all saved checkpoints
-- **get_checkpoint_info(checkpoint_id)** - Inspect checkpoint details
-- **delete_checkpoint(checkpoint_id)** - Clean up old checkpoints
-
-### Variable Resolution System
-
-**CRITICAL: Four-namespace architecture**
-
-All variables use explicit namespace paths:
-
-```yaml
-# Workflow inputs
-${inputs.project_name}
-${inputs.workspace}
-
-# Workflow metadata
-${metadata.workflow_name}
-${metadata.start_time}
-
-# Block outputs (explicit)
-${blocks.create_worktree.outputs.worktree_path}
-${blocks.run_tests.outputs.exit_code}
-
-# Block outputs (shortcut - auto-expands to outputs)
-${blocks.run_tests.exit_code}           # Same as outputs.exit_code
-${blocks.create_worktree.worktree_path}  # Same as outputs.worktree_path
-
-# Block status (ADR-007)
-${blocks.run_tests.succeeded}   # Boolean: true if completed successfully
-${blocks.build.failed}          # Boolean: true if failed (any reason)
-${blocks.optional.skipped}      # Boolean: true if skipped
-```
-
-**Never use bare block IDs without namespace:**
-- ❌ WRONG: `${run_tests}` or `${run_tests.success}`
-- ✅ CORRECT: `${blocks.run_tests.succeeded}` or `${blocks.run_tests.outputs.exit_code}`
-
-### Conditional Execution
-
-Use conditions to control block execution:
-
-```yaml
-blocks:
-  - id: deploy
-    type: Shell
-    inputs:
-      command: ./deploy.sh
-    condition: "${blocks.run_tests.succeeded}"  # Only deploy if tests passed
-    depends_on: [run_tests]
-```
-
-**Tier 1: Boolean Shortcuts (Use for 90% of cases)**
-- `${blocks.id.succeeded}` - True if completed successfully
-- `${blocks.id.failed}` - True if failed (any reason)
-- `${blocks.id.skipped}` - True if skipped
-
-**Tier 2: Status String (For precise control)**
-- `${blocks.id.status} == 'completed'` - Executor finished
-- `${blocks.id.status} in ['completed', 'skipped']` - Run if finished or skipped
-
-### Workflow Composition
-
-Call workflows as blocks:
-
-```yaml
-blocks:
-  - id: ci_pipeline
-    type: Workflow
-    inputs:
-      workflow: "python-ci-pipeline"
-      inputs:
-        project_path: "${inputs.workspace}"
-```
-
-## Discovering Workflows with Tags
-
-### Tag-Based Discovery Pattern
-
-**ALWAYS start by discovering workflows using tags instead of guessing workflow names.**
-
-Common tag categories:
-- **Language**: `python`, `javascript`, `shell`
-- **Task type**: `ci`, `git`, `testing`, `deployment`, `tdd`
-- **Operations**: `setup`, `checkout`, `commit`, `lint`, `analysis`
-
-### Discovery Workflow
-
-**Step 1: Discover workflows by tags**
 ```text
 Tool: list_workflows
 Parameters:
-  tags: ['python', 'testing']  # AND logic - workflows with BOTH tags
+  tags: ['python', 'ci']  # AND logic - workflows with BOTH tags
   format: 'markdown'
 Returns: List of matching workflow names
 ```
 
-**Step 2: Get workflow details**
+**Common tag combinations:**
+- **Python**: `['python']`, `['python', 'testing']`, `['python', 'ci']`
+- **Git**: `['git']`, `['git', 'commit']`, `['git', 'checkout']`
+- **CI/CD**: `['ci']`, `['ci', 'deployment']`
+- **TDD**: `['tdd']`, `['tdd', 'phase1']`, `['tdd', 'implementation']`
+
+### Step 2: Get Workflow Information
+
+**Call before executing** to understand required inputs and workflow structure:
+
 ```text
 Tool: get_workflow_info
 Parameters:
   workflow: 'python-ci-pipeline'
   format: 'markdown'
-Returns: Workflow structure, inputs, outputs, blocks
+Returns: Workflow structure, required inputs, outputs, blocks
 ```
 
-**Step 3: Execute workflow**
+### Step 3: Execute Workflow
+
 ```text
 Tool: execute_workflow
 Parameters:
@@ -171,72 +70,144 @@ Parameters:
 Returns: {status: 'success', outputs: {...}}
 ```
 
-### Common Tag Combinations
+**Response status values:**
+- `'success'` - Workflow completed successfully
+- `'failure'` - Workflow failed (check `error` field)
+- `'paused'` - Workflow paused for user input (Prompt blocks)
 
-**Python Development**:
-- `['python']` - All Python-related workflows
-- `['python', 'testing']` - Python test execution workflows
-- `['python', 'ci']` - Python CI pipelines
-- `['python', 'setup']` - Environment setup workflows
+## Available MCP Tools
 
-**Git Operations**:
-- `['git']` - All git workflows
-- `['git', 'commit']` - Commit-related workflows
-- `['git', 'checkout']` - Branch checkout workflows
-- `['git', 'analysis']` - Git diff and analysis workflows
+The workflows-mcp server provides these tools:
 
-**CI/CD**:
-- `['ci']` - All CI workflows
-- `['ci', 'deployment']` - Deployment pipelines
-- `['deployment', 'conditional']` - Environment-based deployments
+### Discovery & Information
 
-**TDD Workflows**:
-- `['tdd']` - All TDD workflows
-- `['tdd', 'phase1']` - Analysis phase
-- `['tdd', 'implementation']` - Implementation phase
-- `['tdd', 'integration']` - Integration testing phase
+**list_workflows(tags, format)** - Discover workflows by tags
+- Filter by tags with AND logic: `tags=['python', 'testing']`
+- Format: `json` or `markdown`
+- Returns workflow names only
 
-## Workflow Execution Pattern
+**get_workflow_info(workflow, format)** - Get detailed workflow information
+- Shows inputs, outputs, blocks, dependencies
+- Format: `json` or `markdown`
+- Call before executing to understand requirements
 
-**Recommended approach: Discover → Inspect → Execute**
+### Execution
 
-### Step 1: Discover Workflows by Tags
+**execute_workflow(workflow, inputs, response_format)** - Execute registered workflow
+- Provide required inputs from get_workflow_info()
+- Response format: `minimal` (recommended) or `detailed` (debugging only)
+- Returns execution status and outputs
 
-**Preferred method - discover by tags:**
-```text
-Tool: list_workflows
-Parameters:
-  tags: ['python', 'ci']  # AND logic: workflows with BOTH tags
-  format: 'markdown'
+**execute_inline_workflow(workflow_yaml, inputs, response_format)** - Execute YAML directly
+- Execute workflow without registration
+- Useful for one-off or custom workflows
+- Validate first with validate_workflow_yaml()
+
+**validate_workflow_yaml(yaml_content)** - Validate workflow YAML before execution
+- Catches syntax errors early
+- Returns validation errors with helpful messages
+- Always validate inline workflows before execution
+
+### Checkpoint Management
+
+**resume_workflow(checkpoint_id, response, response_format)** - Resume paused workflow
+- Used for interactive workflows with Prompt blocks
+- Provide user response to prompt
+- Continue from saved checkpoint
+
+**list_checkpoints(workflow_name, format)** - View saved checkpoints
+- Filter by workflow name (optional)
+- Shows pause and automatic checkpoints
+
+**get_checkpoint_info(checkpoint_id, format)** - Inspect checkpoint details
+- View checkpoint state before resuming
+- See progress and context
+
+**delete_checkpoint(checkpoint_id)** - Clean up old checkpoints
+- Remove paused workflows no longer needed
+
+## Variable Syntax Overview
+
+All variables use explicit four-namespace architecture:
+
+### 1. Inputs Namespace
+Access workflow input parameters:
+```yaml
+{{inputs.project_name}}
+{{inputs.workspace}}
+{{inputs.environment}}
 ```
 
-**Alternative - list all workflows (less efficient):**
-```text
-Tool: list_workflows
-Parameters:
-  tags: []  # Empty list = all workflows
-  format: 'json'
+### 2. Metadata Namespace
+Access workflow execution metadata:
+```yaml
+{{metadata.workflow_name}}
+{{metadata.start_time}}
+{{metadata.execution_id}}
 ```
 
-### Step 2: Get Workflow Information
+### 3. Blocks Namespace
+Access block execution results (most commonly used):
 
-**ALWAYS call this before executing** to understand inputs and behavior:
-
-```text
-Tool: get_workflow_info
-Parameters:
-  workflow: 'python-ci-pipeline'
-  format: 'markdown'  # Human-readable format recommended
+**Block outputs:**
+```yaml
+{{blocks.run_tests.outputs.exit_code}}
+{{blocks.create_file.outputs.path}}
 ```
 
-### Step 3: Execute Workflow
+**Block status (use for 90% of conditional cases):**
+```yaml
+{{blocks.test.succeeded}}    # True if completed successfully
+{{blocks.build.failed}}      # True if failed (any reason)
+{{blocks.optional.skipped}}  # True if skipped by condition
+```
 
-```bash
-Tool: execute_workflow
-Parameters:
-  workflow: 'python-ci-pipeline'
-  inputs: {project_path: '/path/to/project'}  # From get_workflow_info()
-  response_format: 'minimal'  # Use 'detailed' only for debugging
+## Common Patterns
+
+### Pattern 1: Conditional Execution Based on Success
+
+```yaml
+blocks:
+  - id: run_tests
+    type: Shell
+    inputs:
+      command: pytest tests/
+
+  - id: deploy
+    type: Shell
+    inputs:
+      command: ./deploy.sh
+    condition: "{{blocks.run_tests.succeeded}}"
+    depends_on: [run_tests]
+```
+
+### Pattern 2: Workflow Composition
+
+```yaml
+blocks:
+  - id: ci_pipeline
+    type: Workflow
+    inputs:
+      workflow: "python-ci-pipeline"
+      inputs:
+        project_path: "{{inputs.workspace}}"
+```
+
+### Pattern 3: Parallel Execution
+
+```yaml
+blocks:
+  - id: unit_tests
+    type: Shell
+    inputs:
+      command: "pytest tests/unit/"
+
+  - id: integration_tests
+    type: Shell
+    inputs:
+      command: "pytest tests/integration/"
+
+  # Both run in parallel (no dependencies)
 ```
 
 ## Creating Inline Workflows
@@ -256,193 +227,97 @@ blocks:
   - id: step1
     type: Shell
     inputs:
-      command: "echo Processing ${inputs.target}"
+      command: "echo Processing {{inputs.target}}"
 
   - id: step2
     type: Shell
     inputs:
       command: "echo Done"
     depends_on: [step1]
-    condition: "${blocks.step1.succeeded}"
+    condition: "{{blocks.step1.succeeded}}"
 
 outputs:
-  result: "${blocks.step2.outputs.stdout}"
+  result: "{{blocks.step2.outputs.stdout}}"
 ```
 
-Execute with:
-
-```text
-Tool: execute_inline_workflow
-Parameters:
-  workflow_yaml: '<yaml content above>'
-  inputs: {target: 'my-target'}
-```
+Execute with execute_inline_workflow tool.
 
 ## Best Practices
 
-### 1. Always Use Proper Variable Syntax
-- ✅ `${inputs.field_name}`
-- ✅ `${blocks.block_id.outputs.field}`
-- ✅ `${blocks.block_id.succeeded}`
-- ❌ `${field_name}` - Missing namespace
-- ❌ `${block_id}` - Missing blocks namespace
-
-### 2. Discover Workflows with Tags First
-Use `list_workflows(tags=[...])` to discover relevant workflows instead of guessing names. Tag-based discovery is more reliable and shows you all available options.
-
-### 3. Check Workflow Info Before Execution
-Call `get_workflow_info()` to see required inputs, outputs, and workflow structure before executing.
-
-### 4. Use Boolean Shortcuts for Conditions
-- Prefer `${blocks.test.succeeded}` over `${blocks.test.outputs.exit_code} == 0`
-- Simpler, more readable, follows ADR-007 standard
-
-### 5. Handle Execution Responses
-Check `status` field in response:
-- `"success"` - Workflow completed successfully
-- `"failure"` - Workflow failed (check `error` field)
-
-### 6. Use Minimal Response Format
-Unless debugging, use `response_format: "minimal"` to reduce token usage.
-
-### 7. Validate Before Execution
-For inline workflows, use `validate_workflow_yaml()` first to catch errors.
-
-## Common Patterns
-
-### Pattern 1: Run Tests Then Deploy
-
-```yaml
-blocks:
-  - id: run_tests
-    type: Shell
-    inputs:
-      command: pytest tests/
-
-  - id: deploy
-    type: Shell
-    inputs:
-      command: ./deploy.sh
-    condition: "${blocks.run_tests.succeeded}"
-    depends_on: [run_tests]
-```
-
-**See [references/examples.md](references/examples.md) for more complete workflow examples including multi-stage deployments, parallel execution, and error handling.**
+1. **Tag-based discovery** - Use list_workflows(tags=[...]) instead of guessing workflow names
+2. **Check workflow info first** - Call get_workflow_info() to understand requirements
+3. **Explicit namespaces** - Use inputs.*, blocks.*, metadata.* consistently
+4. **Boolean shortcuts** - Prefer .succeeded over .outputs.exit_code == 0
+5. **Minimal response format** - Use response_format='minimal' unless debugging
+6. **Validate inline workflows** - Use validate_workflow_yaml() before execution
+7. **Handle execution responses** - Check status field: 'success' or 'failure'
 
 ## Troubleshooting
 
 ### Variable Resolution Errors
-If you get variable resolution errors:
-1. Check you're using proper namespace: `${inputs.*}`, `${blocks.*}`, `${metadata.*}`
-2. Verify block IDs match exactly
-3. For block outputs, use full path: `${blocks.id.outputs.field}`
+- Verify proper namespace: `{{inputs.*}}`, `{{blocks.*}}`, `{{metadata.*}}`
+- Check block IDs match exactly (case-sensitive)
+- Ensure blocks complete before referencing outputs (use depends_on)
 
 ### Execution Failures
-If workflow execution fails:
-1. Check the `error` field in response
-2. Use `response_format: "detailed"` to see block-level details
-3. Verify required inputs are provided
-4. Check conditions are using correct syntax
+- Check `error` field in response for details
+- Use `response_format: "detailed"` for block-level debugging
+- Verify required inputs are provided
+- Validate condition syntax
 
 ### Workflow Not Found
-If workflow isn't found:
-1. Use `list_workflows()` to see available workflows
-2. Check workflow name spelling
-3. Verify MCP server is connected
+- Use list_workflows() to see available workflows
+- Check workflow name spelling (case-sensitive)
+- Verify MCP server connection
 
 ## Reference Documentation
 
-For detailed information, use these reference files:
+For detailed information beyond core workflows, load reference files using the Read tool as needed:
 
 ### Variable Syntax Reference
-**File**: [references/variable-syntax.md](references/variable-syntax.md)
-- Complete guide to the four-namespace architecture
-- Variable resolution rules and patterns
-- Common mistakes and debugging tips
+**File**: `references/variable-syntax.md`
 
-**Quick find patterns**:
-```bash
-# List all common mistakes
-grep -A 5 "❌ Wrong" references/variable-syntax.md
+**Load when:** Resolving variable syntax errors, understanding the complete four-namespace architecture, debugging variable resolution issues, or learning advanced variable patterns.
 
-# Find specific pattern examples
-grep -A 10 "Pattern [0-9]" references/variable-syntax.md
-
-# Find namespace documentation
-grep "### [0-9]" references/variable-syntax.md
-```
+**Contains:** Complete variable resolution rules, recursive resolution examples, cross-block references, common mistakes, debugging techniques, and comprehensive variable type information.
 
 ### Block Executors Reference
-**File**: [references/block-executors.md](references/block-executors.md)
-- All available block types (Shell, Workflow, CreateFile, ReadFile, etc.)
-- Input/output specifications for each block type
-- Execution patterns and troubleshooting
+**File**: `references/block-executors.md`
 
-**Quick find patterns**:
-```bash
-# List all block types
-grep "^### " references/block-executors.md
+**Load when:** Understanding available block types (Shell, Workflow, CreateFile, ReadFile, etc.), checking input/output specifications for each block type, learning block execution patterns, or troubleshooting block-specific issues.
 
-# Find specific block documentation
-grep -A 20 "### Shell" references/block-executors.md
+**Contains:** Complete reference for all block types, input/output specifications, execution states, status vs outcome distinction, common block patterns, and troubleshooting guides.
 
-# Find common patterns
-grep -A 15 "### Pattern [0-9]" references/block-executors.md
-```
+### Complete Workflow Examples
+**File**: `references/examples.md`
 
-### Complete Examples
-**File**: [references/examples.md](references/examples.md)
-- Full workflow examples for common use cases
-- Multi-stage deployments, parallel testing, file processing
-- Interactive workflows with approval steps
-- Error handling and retry patterns
+**Load when:** Implementing complex multi-stage workflows, building parallel execution pipelines, creating file processing workflows, designing interactive approval workflows, or learning advanced patterns like retry logic and error handling.
 
-**Quick find patterns**:
-```bash
-# List all examples
-grep "^## Example" references/examples.md
+**Contains:** Full workflow examples with documentation including tag-based discovery examples, multi-stage deployment pipelines, parallel testing with aggregation, file processing pipelines, interactive deployments with approval steps, and common usage patterns.
 
-# Find specific pattern
-grep -A 30 "Pattern:" references/examples.md
-```
+## Bundled Assets
 
-## Quick Start Example
+### Example Workflow Templates
+**Directory**: `examples/`
 
-Basic workflow execution pattern:
+**Available templates:**
+- `simple-ci-pipeline.yaml` - Basic CI pipeline with sequential execution
+- `conditional-deploy.yaml` - Environment-based deployment with conditions
+- `parallel-testing.yaml` - Parallel test execution with result aggregation
 
-**Step 1: Check required inputs**
-```text
-Tool: get_workflow_info
-Parameters:
-  workflow: 'python-ci-pipeline'
-  format: 'markdown'
-```
-
-**Step 2: Execute workflow**
-```text
-Tool: execute_workflow
-Parameters:
-  workflow: 'python-ci-pipeline'
-  inputs: {project_path: '/Users/user/my-project'}
-  response_format: 'minimal'
-```
-
-**Step 3: Check result**
-- If `status` is `'success'` → CI passed
-- If `status` is `'failure'` → Check `error` field
-
-**For complete examples** including multi-stage deployments, parallel execution, file processing, and error handling, see [references/examples.md](references/examples.md).
+**Usage:** Copy and modify these YAML templates for custom workflows. Execute using execute_inline_workflow tool with the template content.
 
 ## Summary
 
-When using workflows-mcp:
-1. **Discover with tags** - Use `list_workflows(tags=[...])` to find relevant workflows
-2. **Get workflow info** - Always call `get_workflow_info()` before executing
-3. **Use proper variable syntax** - Explicit namespaces (`inputs.`, `blocks.`, `metadata.`)
-4. **Use boolean shortcuts** - Conditions with `.succeeded`, `.failed`, `.skipped`
-5. **Check execution status** - Verify `status` field in responses
-6. **Compose workflows** - Build complex pipelines from reusable workflows
+The workflows-mcp server enables powerful workflow orchestration through:
 
-**Key workflow: Discover → Inspect → Execute**
+1. **Tag-based discovery** - Find workflows by purpose, not by guessing names
+2. **Workflow inspection** - Understand requirements before execution
+3. **DAG-based execution** - Automatic dependency resolution and parallel execution
+4. **Conditional logic** - Boolean shortcuts for clean workflow conditions
+5. **Workflow composition** - Build complex pipelines from reusable workflows
+6. **Variable resolution** - Explicit four-namespace architecture for clarity
 
-This MCP server enables powerful workflow orchestration with tag-based discovery, DAG resolution, parallel execution, and conditional logic.
+**Key pattern: Discover → Inspect → Execute**
+
+This ensures correct workflow selection and execution with proper inputs.

@@ -1,0 +1,73 @@
+name: prd-setup
+description: Initialize PRD generation with git worktree isolation and context gathering
+tags: [prd, setup, git, worktree]
+
+inputs:
+  project_name:
+    type: str
+    required: true
+    description: Raw project name from user (will be sanitized for filesystem use)
+
+outputs:
+  worktree_path: "{{blocks.create_worktree.outputs.stdout}}"
+  sanitized_name: "{{blocks.sanitize_name.outputs.stdout}}"
+  branch_name: "prd/{{blocks.sanitize_name.outputs.stdout}}"
+
+blocks:
+  - id: sanitize_name
+    type: Shell
+    inputs:
+      command: ~/.claude/scripts/helpers/utils/sanitize-name.sh "{{inputs.project_name}}"
+      working_dir: ~/.claude
+
+  - id: validate_git_state
+    type: Shell
+    inputs:
+      command: |
+        # Ensure we're in a git repository
+        if ! git rev-parse --git-dir > /dev/null 2>&1; then
+          echo "Not in a git repository" >&2
+          exit 1
+        fi
+
+        # Check for uncommitted changes (warning only)
+        if ! git diff-index --quiet HEAD --; then
+          echo "Warning: You have uncommitted changes in the main directory" >&2
+        fi
+
+        echo "Git state validated"
+    depends_on: [sanitize_name]
+
+  - id: create_worktree
+    type: Shell
+    inputs:
+      command: ~/.claude/scripts/helpers/git/create-worktree.sh prd "{{blocks.sanitize_name.outputs.stdout}}"
+      working_dir: ~/.claude
+    depends_on: [validate_git_state]
+    condition: "{{blocks.validate_git_state.succeeded}}"
+
+  - id: verify_worktree
+    type: Shell
+    inputs:
+      command: |
+        WORKTREE_PATH="{{blocks.create_worktree.outputs.stdout}}"
+        if [ -d "$WORKTREE_PATH" ]; then
+          echo "Worktree verified at: $WORKTREE_PATH"
+          cd "$WORKTREE_PATH" && git branch --show-current
+        else
+          echo "Worktree creation failed" >&2
+          exit 1
+        fi
+    depends_on: [create_worktree]
+    condition: "{{blocks.create_worktree.succeeded}}"
+
+  - id: setup_complete
+    type: Shell
+    inputs:
+      command: |
+        echo "PRD setup complete:"
+        echo "  Worktree: {{blocks.create_worktree.outputs.stdout}}"
+        echo "  Branch: prd/{{blocks.sanitize_name.outputs.stdout}}"
+        echo "  Ready for PRD generation"
+    depends_on: [verify_worktree]
+    condition: "{{blocks.verify_worktree.succeeded}}"

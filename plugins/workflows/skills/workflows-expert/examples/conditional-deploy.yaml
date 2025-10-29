@@ -17,7 +17,7 @@ blocks:
     type: Shell
     inputs:
       command: "pytest tests/"
-    condition: "${inputs.skip_tests} == false"
+    condition: "{{inputs.skip_tests}} == false"
 
   # Build application
   - id: build
@@ -26,8 +26,8 @@ blocks:
       command: "npm run build"
     depends_on: [run_tests]
     condition: >
-      ${inputs.skip_tests} == true or
-      ${blocks.run_tests.succeeded}
+      {{inputs.skip_tests}} == true or
+      {{blocks.run_tests.succeeded}}
 
   # Deploy to staging
   - id: deploy_staging
@@ -36,8 +36,8 @@ blocks:
       command: "./deploy.sh staging"
     depends_on: [build]
     condition: >
-      ${blocks.build.succeeded} and
-      ${inputs.environment} == 'staging'
+      {{blocks.build.succeeded}} and
+      {{inputs.environment}} == 'staging'
 
   # Deploy to production
   - id: deploy_production
@@ -46,19 +46,19 @@ blocks:
       command: "./deploy.sh production"
     depends_on: [build]
     condition: >
-      ${blocks.build.succeeded} and
-      ${inputs.environment} == 'production'
+      {{blocks.build.succeeded}} and
+      {{inputs.environment}} == 'production'
 
   # Verify deployment
   - id: verify
     type: Shell
     inputs:
-      command: "curl -f https://${inputs.environment}.example.com/health"
+      command: "curl -f https://{{inputs.environment}}.example.com/health"
     depends_on: [deploy_staging, deploy_production]
     condition: >
-      ${blocks.deploy_staging.succeeded} or
-      ${blocks.deploy_production.succeeded}
+      {{blocks.deploy_staging.succeeded}} or
+      {{blocks.deploy_production.succeeded}}
 
 outputs:
-  deployed: "${blocks.verify.succeeded}"
-  environment: "${inputs.environment}"
+  deployed: "{{blocks.verify.succeeded}}"
+  environment: "{{inputs.environment}}"
