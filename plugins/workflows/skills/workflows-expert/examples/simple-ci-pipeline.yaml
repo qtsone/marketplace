@@ -3,7 +3,7 @@ description: Basic CI pipeline - test, lint, and build
 
 inputs:
   project_path:
-    type: string
+    type: str
     required: true
     description: Path to the project directory
 
