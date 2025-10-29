@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.3.0](https://github.com/qtsone/marketplace/compare/v1.2.0...v1.3.0) (2025-10-29)
+
+
+### Features
+
+* implement unified versioning strategy for marketplace and plugins ([4e940c8](https://github.com/qtsone/marketplace/commit/4e940c86d0482c5e6a3b83b63bcc9f2d90461b78))
+
 # [1.2.0](https://github.com/qtsone/marketplace/compare/v1.1.0...v1.2.0) (2025-10-29)
 
 
