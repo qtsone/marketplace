@@ -1,6 +1,6 @@
 {
   "name": "workflows",
-  "version": "2.0.0",
+  "version": "1.2.0",
   "description": "Complete workflow orchestration solution with specialist agent, expert skill, and MCP auto-configuration for DAG-based workflows",
   "author": {
     "name": "QTS Team",
@@ -10,5 +10,13 @@
   "homepage": "https://github.com/qtsone/marketplace",
   "repository": "https://github.com/qtsone/marketplace",
   "license": "MIT",
-  "keywords": ["workflows", "mcp", "dag", "automation", "orchestration", "specialist", "agent"]
+  "keywords": [
+    "workflows",
+    "mcp",
+    "dag",
+    "automation",
+    "orchestration",
+    "specialist",
+    "agent"
+  ]
 }

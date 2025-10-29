@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.2.0](https://github.com/qtsone/marketplace/compare/v1.1.0...v1.2.0) (2025-10-29)
+
+
+### Bug Fixes
+
+* add package.json with semantic-release dependencies ([965eae3](https://github.com/qtsone/marketplace/commit/965eae3dec9d52d5d66a301be7a1bdb9852348fd))
+* disable default extra-plugins when using package.json ([6530167](https://github.com/qtsone/marketplace/commit/6530167518714051c3e5d601b2f53b478d0806ec))
+* use configurable extra-plugins input for semantic-release ([20884b0](https://github.com/qtsone/marketplace/commit/20884b093d8f0b5dbedc4bd50150bc5e094cf05b))
+* use extra-plugins for module resolution compatibility ([f77ac9e](https://github.com/qtsone/marketplace/commit/f77ac9ee478bcfabcdbeca16c2c51240594880b7))
+* use package.json for semantic-release plugin management ([7f7b688](https://github.com/qtsone/marketplace/commit/7f7b68824cde6214374045ec6d0540398a9c239f))
+* **workflows-expert:** correct broken example workflows and invalid syntax ([8a136b0](https://github.com/qtsone/marketplace/commit/8a136b0c3f27dcde106c0943b46fcf76513ca1b0))
+
+
+### Features
+
+* add test workflow for semantic-release action validation ([6b488ad](https://github.com/qtsone/marketplace/commit/6b488ad47c91478f4677dc954ddd845191119dcd))
+* automate version management in semantic-release workflow ([bd5e8f2](https://github.com/qtsone/marketplace/commit/bd5e8f22f0c4b0540535254389879640f051564c))
+
 # [1.1.0](https://github.com/qtsone/marketplace/compare/v1.0.0...v1.1.0) (2025-10-26)
 
 

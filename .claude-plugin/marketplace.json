@@ -14,8 +14,14 @@
         "name": "QTS Team",
         "email": "[email protected]"
       },
-      "keywords": ["workflows", "mcp", "dag", "automation"],
+      "keywords": [
+        "workflows",
+        "mcp",
+        "dag",
+        "automation"
+      ],
       "license": "MIT"
     }
-  ]
+  ],
+  "version": "1.2.0"
 }
