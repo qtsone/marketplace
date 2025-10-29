@@ -14,7 +14,7 @@ jobs:
       pull-requests: write  # to be able to comment on released pull requests
     steps:
       - name: Semantic Release
-        uses: qtsone/actions/release@main
+        uses: qtsone/actions/release@feat/auto-version-updates
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           ssh-key: ${{ secrets.DEPLOY_KEY }}
