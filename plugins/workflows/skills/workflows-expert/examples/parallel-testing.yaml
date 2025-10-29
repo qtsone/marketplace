@@ -3,9 +3,8 @@ description: Run multiple test suites in parallel
 
 inputs:
   project_path:
-    type: str
+    type: string
     required: true
-    description: Path to the project directory
 
 blocks:
   # All these tests run in parallel (no dependencies)
@@ -71,7 +70,7 @@ blocks:
     type: CreateFile
     inputs:
       path: "{{inputs.project_path}}/test-results.md"
-      content: "{{blocks.generate_report.outputs.content}}"
+      content: "{{blocks.generate_report.rendered}}"
     depends_on: [generate_report]
 
 outputs:
@@ -81,4 +80,4 @@ outputs:
     {{blocks.e2e_tests.succeeded}} and
     {{blocks.lint_check.succeeded}} and
     {{blocks.type_check.succeeded}}
-  report_path: "{{blocks.save_report.outputs.path}}"
+  report_path: "{{blocks.save_report.path}}"

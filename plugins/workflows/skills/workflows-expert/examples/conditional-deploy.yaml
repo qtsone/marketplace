@@ -3,11 +3,11 @@ description: Deploy to different environments based on conditions
 
 inputs:
   environment:
-    type: str
+    type: string
     required: true
     description: "staging or production"
   skip_tests:
-    type: bool
+    type: boolean
     default: false
     description: Skip tests (for emergency deployments)
 

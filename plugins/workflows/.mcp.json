@@ -6,7 +6,7 @@
         "workflows-mcp"
       ],
       "env": {
-        "WORKFLOWS_TEMPLATE_PATHS": "~/.workflows,./.workflows"
+        "WORKFLOWS_TEMPLATE_PATHS": "~/.workflows:./.workflows"
       },
       "disabled": false,
       "autoApprove": []
