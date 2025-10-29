@@ -1,0 +1,54 @@
+name: Test Release Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Run in dry-run mode (no actual release)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  test-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Test Semantic Release
+        id: release
+        uses: qtsone/actions/release@feat/auto-version-updates
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          dry-run: ${{ inputs.dry-run }}
+          debug: ${{ inputs.debug }}
+          extra-plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/exec
+
+      - name: Display Release Outputs
+        run: |
+          echo "=== Release Action Outputs ==="
+          echo "New release published: ${{ steps.release.outputs.new_release_published }}"
+          echo "New release version: ${{ steps.release.outputs.new_release_version }}"
+          echo ""
+          if [ "${{ steps.release.outputs.new_release_published }}" = "true" ]; then
+            echo "✅ Release would be published: v${{ steps.release.outputs.new_release_version }}"
+          else
+            echo "ℹ️  No release would be published (no relevant changes)"
+          fi
