@@ -9,7 +9,7 @@
       "name": "workflows",
       "source": "./plugins/workflows",
       "description": "Expert skill for using workflows-mcp MCP server to execute DAG-based workflows",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "author": {
         "name": "QTS Team",
         "email": "[email protected]"
@@ -23,5 +23,5 @@
       "license": "MIT"
     }
   ],
-  "version": "1.3.0"
+  "version": "1.3.1"
 }

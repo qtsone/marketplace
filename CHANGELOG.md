@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1](https://github.com/qtsone/marketplace/compare/v1.3.0...v1.3.1) (2025-10-30)
+
+
+### Bug Fixes
+
+* **release:** update tag ([435ac04](https://github.com/qtsone/marketplace/commit/435ac040f8b526ae68e7ae779a37ee23c830abff))
+
 # [1.3.0](https://github.com/qtsone/marketplace/compare/v1.2.0...v1.3.0) (2025-10-29)
 
 
