@@ -3,6 +3,7 @@
     "workflows": {
       "command": "uvx",
       "args": [
+        "--refresh",
         "workflows-mcp"
       ],
       "env": {
