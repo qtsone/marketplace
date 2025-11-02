@@ -1,6 +1,6 @@
 {
   "name": "workflows",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "Complete workflow orchestration solution with specialist agent, expert skill, and MCP auto-configuration for DAG-based workflows",
   "author": {
     "name": "QTS Team",
